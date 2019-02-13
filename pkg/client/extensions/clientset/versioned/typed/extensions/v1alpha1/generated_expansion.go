@@ -2,6 +2,8 @@
 
 package v1alpha1
 
+type InfrastructureExpansion interface{}
+
 type OperatingSystemConfigExpansion interface{}
 
 type WorkerPoolExpansion interface{}
