@@ -526,10 +526,12 @@ func (c *Controller) updateShootStatusDeleteError(o *operation.Operation, lastEr
 
 			shoot.Status.Gardener = *o.GardenerInfo
 			shoot.Status.LastError = lastError
-			shoot.Status.LastOperation.Type = gardencorev1alpha1.LastOperationTypeDelete
-			shoot.Status.LastOperation.State = state
-			shoot.Status.LastOperation.Description = description
-			shoot.Status.LastOperation.LastUpdateTime = metav1.Now()
+			shoot.Status.LastOperation = &gardencorev1alpha1.LastOperation{
+				Type:           gardencorev1alpha1.LastOperationTypeDelete,
+				State:          state,
+				Description:    description,
+				LastUpdateTime: metav1.Now(),
+			}
 			return shoot, nil
 		},
 	)
