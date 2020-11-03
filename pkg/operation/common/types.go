@@ -518,6 +518,13 @@ const (
 
 	// EndUserCrtValidity is the time period a user facing certificate is valid.
 	EndUserCrtValidity = 730 * 24 * time.Hour // ~2 years, see https://support.apple.com/en-us/HT210176
+
+	// GardenletDefaultKubeconfigSecretName is the default name for the field in the Gardenlet component configuration
+	// .gardenClientConnection.KubeconfigSecret.Name
+	GardenletDefaultKubeconfigSecretName          = "gardenlet-kubeconfig"
+	// GardenletDefaultKubeconfigBootstrapSecretName is the default name for the field in the Gardenlet component configuration
+	// .gardenClientConnection.BootstrapKubeconfig.Name
+	GardenletDefaultKubeconfigBootstrapSecretName = "gardenlet-kubeconfig-bootstrap"
 )
 
 var (

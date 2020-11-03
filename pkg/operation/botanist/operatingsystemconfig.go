@@ -30,6 +30,7 @@ import (
 	"github.com/gardener/gardener/pkg/operation/shoot"
 	"github.com/gardener/gardener/pkg/utils"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
+	"github.com/gardener/gardener/pkg/utils/kubernetes/bootstrap"
 	"github.com/gardener/gardener/pkg/utils/secrets"
 
 	corev1 "k8s.io/api/core/v1"
@@ -485,7 +486,7 @@ func (b *Botanist) getGenerateCloudConfigExecutionChartFunc(releaseName string, 
 			}
 		}
 		config := map[string]interface{}{
-			"bootstrapToken":    kutil.BootstrapTokenFrom(tokenSecret.Data),
+			"bootstrapToken":    bootstrap.BootstrapTokenFrom(tokenSecret.Data),
 			"configFilePath":    common.CloudConfigFilePath,
 			"kubernetesVersion": b.Shoot.Info.Spec.Kubernetes.Version,
 			"worker":            w,

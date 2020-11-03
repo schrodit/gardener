@@ -1,0 +1,58 @@
+apiVersion: imports.gardenlet.landscaper.gardener.cloud/v1alpha1
+kind: GardenletLandscaperImport
+runtimeCluster:
+  apiVersion: landscaper.gardener.cloud/v1alpha1
+  kind: Target
+  spec:
+    type: landscaper.gardener.cloud/kubernetes-cluster
+    config:
+      kubeconfig: |
+        apiVersion:...
+        # here goes the kubeconfig of the target cluster
+
+gardenCluster:
+  spec:
+    type: landscaper.gardener.cloud/kubernetes-cluster
+    config:
+      kubeconfig: |
+        ---
+        apiVersion: v1
+        kind: Config
+      # ... <please insert your kubeconfig here
+
+# imageVectorOverwrite: "..."
+# componentImageVectorOverwrites: "..."
+
+# optional backup provider for the Seed cluster registered by the Gardenlet
+# required when gardenlet.componentConfiguration.seedConfig.backup.secretRef is not set
+# secret is deployed into the virtual Garden cluster
+seedBackup:
+  provider: aws
+  credentials:
+  # Provider-related secret keys
+  #
+  # Please checkout the documentation and example manifests of your provider to find out which data keys
+  # are expected.
+  # E.g AWS:
+#    accessKeyID: base64(access-key-id)
+#    secretAccessKey: base64(secret-access-key)
+
+#revisionHistoryLimit: 10
+#resources:
+#  requests:
+#    cpu: 50m
+#    memory: 100Mi
+#  limits:
+#    cpu: 1000m
+#    memory: 2Gi
+
+# check example/20-componentconfig-gardenlet.yaml for what can be configured
+componentConfiguration:
+  #  apiVersion: gardenlet.config.gardener.cloud/v1alpha1
+  #  kind: GardenletConfiguration
+  # <optional Gardenlet component configuration to deviate from the default settings>
+  seedConfig:
+    metadata:
+      name: my-seed
+    spec:
+  #     <Check out the `spec` in the `50-seed.yaml` file to see what's possible to configure here>

@@ -1,0 +1,54 @@
+apiVersion: landscaper.gardener.cloud/v1alpha1
+# lives as OCI artifact in registry
+kind: Blueprint
+jsonSchema: "https://json-schema.org/draft/2019-09/schema" # required
+
+# imports are filled by Installation CRD during reconciliation that has an import section
+imports:
+- name: runtimeCluster
+#  requires a Target CRD with the name runtimeCluster - how would that work if there are multiple Gardenlets to be deployed?
+#  I guess only one gardenlet deployment per landscaper
+  targetType: landscaper.gardener.cloud/kubernetes-cluster
+- name: gardenCluster
+  targetType: landscaper.gardener.cloud/kubernetes-cluster
+- name: imageVectorOverwrite
+  schema:
+    type: string
+- name: componentImageVectorOverwrites
+  schema:
+    type: string
+- name: seedBackupProvider
+  schema:
+    type: object
+      properties:
+        name:
+          type: string
+#       provider specific credentials just parsed as string and created as secret
+        providerCredentials:
+          type: object
+- name: revisionHistoryLimit
+  schema:
+    type: string
+- name: resources
+  schema:
+    type: object
+      properties:
+        requests:
+          type: object
+            properties:
+              cpu:
+                type: string
+              memory:
+                type: string
+        limits:
+          type: object
+            properties:
+              cpu:
+                type: string
+              memory:
+                type: string
+
+# check example/20-componentconfig-gardenlet.yaml for what can be configured
+- name: componentConfiguration
+  schema:
+    type: object

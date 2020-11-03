@@ -1,0 +1,4 @@
+apiVersion: v1
+description: A helm chart to bootstrap the vpa CRD for the Seed cluster
+name: vpa-crd
+version: 0.0.1

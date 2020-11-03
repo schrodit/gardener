@@ -36,26 +36,24 @@ import (
 	bootstraputil "github.com/gardener/gardener/pkg/gardenlet/bootstrap/util"
 	"github.com/gardener/gardener/pkg/logger"
 	"github.com/gardener/gardener/pkg/operation/common"
+	"github.com/gardener/gardener/pkg/operation/seed/gardenlet"
 	"github.com/gardener/gardener/pkg/utils"
 	"github.com/gardener/gardener/pkg/utils/imagevector"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
+	"github.com/gardener/gardener/pkg/utils/kubernetes/bootstrap"
 	"github.com/gardener/gardener/pkg/version"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
-	bootstraptokenapi "k8s.io/cluster-bootstrap/token/api"
-	bootstraptokenutil "k8s.io/cluster-bootstrap/token/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -204,7 +202,7 @@ func (c *defaultSeedRegistrationControl) Reconcile(shootObj *gardencorev1beta1.S
 		}
 
 		shootLogger.Infof("[SHOOTED SEED REGISTRATION] Deleting gardenlet in seed %s", shoot.Name)
-		if err := deleteGardenlet(ctx, shootedSeedClient.Client()); err != nil {
+		if err := gardenlet.DeleteGardenlet(ctx, shootedSeedClient.Client()); err != nil {
 			message := fmt.Sprintf("Could not deregister shoot %q as seed: %+v", shoot.Name, err)
 			shootLogger.Errorf(message)
 			c.recorder.Event(shoot, corev1.EventTypeWarning, "GardenletDeletion", message)
@@ -438,15 +436,10 @@ func deregisterAsSeed(ctx context.Context, gardenClient kubernetes.Interface, sh
 	return nil
 }
 
-const (
-	gardenletKubeconfigBootstrapSecretName = "gardenlet-kubeconfig-bootstrap"
-	gardenletKubeconfigSecretName          = "gardenlet-kubeconfig"
-)
-
 func deployGardenlet(ctx context.Context, gardenClient, seedClient, shootedSeedClient kubernetes.Interface, shoot *gardencorev1beta1.Shoot, shootedSeedConfig *gardencorev1beta1helper.ShootedSeed, imageVector imagevector.ImageVector, cfg *config.GardenletConfiguration) error {
 	// create bootstrap kubeconfig in case there is no existing gardenlet kubeconfig yet
 	var bootstrapKubeconfigValues map[string]interface{}
-	if err := shootedSeedClient.Client().Get(ctx, kutil.Key(v1beta1constants.GardenNamespace, gardenletKubeconfigSecretName), &corev1.Secret{}); err != nil {
+	if err := shootedSeedClient.Client().Get(ctx, kutil.Key(v1beta1constants.GardenNamespace, common.GardenletDefaultKubeconfigSecretName), &corev1.Secret{}); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return err
 		}
@@ -517,42 +510,16 @@ func deployGardenlet(ctx context.Context, gardenClient, seedClient, shootedSeedC
 			var (
 				tokenID               = utils.ComputeSHA256Hex([]byte(shoot.Name))[:6]
 				validity              = 24 * time.Hour
-				refreshBootstrapToken = true
-				bootstrapTokenSecret  *corev1.Secret
 			)
 
-			secret := &corev1.Secret{}
-			if err := gardenClient.Client().Get(ctx, kutil.Key(metav1.NamespaceSystem, bootstraptokenutil.BootstrapTokenSecretName(tokenID)), secret); client.IgnoreNotFound(err) != nil {
-				return err
-			}
-
-			if expirationTime, ok := secret.Data[bootstraptokenapi.BootstrapTokenExpirationKey]; ok {
-				t, err := time.Parse(time.RFC3339, string(expirationTime))
-				if err != nil {
-					return err
-				}
-
-				if !t.Before(metav1.Now().UTC()) {
-					bootstrapTokenSecret = secret
-					refreshBootstrapToken = false
-				}
-			}
-
-			if refreshBootstrapToken {
-				bootstrapTokenSecret, err = kutil.ComputeBootstrapToken(ctx, gardenClient.Client(), tokenID, fmt.Sprintf("A bootstrap token for the Gardenlet for shooted seed %q.", shoot.Name), validity)
-				if err != nil {
-					return err
-				}
-			}
-
-			bootstrapKubeconfig, err = bootstraputil.MarshalKubeconfigWithToken(&restConfig, kutil.BootstrapTokenFrom(bootstrapTokenSecret.Data))
+			bootstrapKubeconfig, err = bootstrap.ComputeKubeconfigWithBootstrapToken(ctx, gardenClient.Client(), &restConfig, tokenID, fmt.Sprintf("A bootstrap token for the Gardenlet for shooted seed %q.", shoot.Name), validity)
 			if err != nil {
 				return err
 			}
 		}
 
 		bootstrapKubeconfigValues = map[string]interface{}{
-			"name":       gardenletKubeconfigBootstrapSecretName,
+			"name":       common.GardenletDefaultKubeconfigBootstrapSecretName,
 			"namespace":  v1beta1constants.GardenNamespace,
 			"kubeconfig": string(bootstrapKubeconfig),
 		}
@@ -657,7 +624,7 @@ func deployGardenlet(ctx context.Context, gardenClient, seedClient, shootedSeedC
 						"gardenClusterAddress": externalConfig.GardenClientConnection.GardenClusterAddress,
 						"bootstrapKubeconfig":  bootstrapKubeconfigValues,
 						"kubeconfigSecret": map[string]interface{}{
-							"name":      gardenletKubeconfigSecretName,
+							"name":      common.GardenletDefaultKubeconfigSecretName,
 							"namespace": v1beta1constants.GardenNamespace,
 						},
 					},
@@ -699,27 +666,6 @@ func deployGardenlet(ctx context.Context, gardenClient, seedClient, shootedSeedC
 	}
 
 	return shootedSeedClient.ChartApplier().Apply(ctx, filepath.Join(common.ChartPath, "gardener", "gardenlet"), v1beta1constants.GardenNamespace, "gardenlet", kubernetes.Values(values))
-}
-
-func deleteGardenlet(ctx context.Context, c client.Client) error {
-	vpa := &unstructured.Unstructured{}
-	vpa.SetAPIVersion("autoscaling.k8s.io/v1beta2")
-	vpa.SetKind("VerticalPodAutoscaler")
-	vpa.SetName("gardenlet-vpa")
-	vpa.SetNamespace(v1beta1constants.GardenNamespace)
-
-	return kutil.DeleteObjects(
-		ctx,
-		c,
-		&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "gardenlet", Namespace: v1beta1constants.GardenNamespace}},
-		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "gardenlet-configmap", Namespace: v1beta1constants.GardenNamespace}},
-		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "gardenlet-imagevector-overwrite", Namespace: v1beta1constants.GardenNamespace}},
-		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: gardenletKubeconfigBootstrapSecretName, Namespace: v1beta1constants.GardenNamespace}},
-		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: gardenletKubeconfigSecretName, Namespace: v1beta1constants.GardenNamespace}},
-		&corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: "gardenlet", Namespace: v1beta1constants.GardenNamespace}},
-		&policyv1beta1.PodDisruptionBudget{ObjectMeta: metav1.ObjectMeta{Name: "gardenlet", Namespace: v1beta1constants.GardenNamespace}},
-		vpa,
-	)
 }
 
 func checkSeedAssociations(ctx context.Context, c client.Client, seedName string) error {

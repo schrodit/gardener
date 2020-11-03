@@ -6,6 +6,7 @@ require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/ahmetb/gen-crd-api-reference-docs v0.2.0
 	github.com/coreos/go-systemd/v22 v22.1.0
+	github.com/gardener/component-spec/bindings-go v0.0.0-20200925130340-816233f5893b
 	github.com/gardener/etcd-druid v0.3.0
 	github.com/gardener/external-dns-management v0.7.18
 	github.com/gardener/gardener-resource-manager v0.13.1
@@ -18,26 +19,26 @@ require (
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/mock v1.4.4-0.20200731163441-8734ec565a4d
 	github.com/googleapis/gnostic v0.3.1
-	github.com/hashicorp/go-multierror v1.0.0
+	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/huandu/xstrings v1.3.1
+	github.com/huandu/xstrings v1.3.2
 	github.com/json-iterator/go v1.1.10
 	github.com/mholt/archiver v3.1.1+incompatible
 	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.1
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.3.0
+	github.com/prometheus/client_golang v1.5.1
 	github.com/robfig/cron v1.2.0
 	github.com/sirupsen/logrus v1.6.0
-	github.com/spf13/cobra v0.0.6
+	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.6.1
 	github.com/texttheater/golang-levenshtein v0.0.0-20191208221605-eb6844b05fc6
-	go.uber.org/zap v1.13.0
-	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
+	go.uber.org/zap v1.15.0
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
-	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
-	gomodules.xyz/jsonpatch/v2 v2.0.1
+	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
+	gomodules.xyz/jsonpatch/v2 v2.1.0
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.18.8
 	k8s.io/apiextensions-apiserver v0.18.8
