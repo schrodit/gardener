@@ -10,16 +10,18 @@ components:
         baseUrl: 'eu.gcr.io/gardener-project/gardener/gardenlet'
       provider: 'internal'
       # local resources must all have the same version. External resources can have different ones.
-      localResources:
+      resources:
       - type: blueprint
         name: blueprint
         version: 'v1.11.3'
+        relation: 'local'
         access:
           type: ociRegistry
           imageReference: eu.gcr.io/sap-se-gcp-scp-k8s-dev/blueprints/test/gardenlet:v1.11.3
       - type: ociImage
         name: gardenlet
         version: 'v1.11.3'
+        relation: 'local'
         access:
           type: ociRegistry
           imageReference: eu.gcr.io/sap-se-gcr-k8s-public/eu_gcr_io/gardener-project/gardener/gardenlet:v1.11.3

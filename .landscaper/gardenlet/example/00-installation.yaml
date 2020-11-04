@@ -13,7 +13,6 @@ spec:
         baseUrl: eu.gcr.io/gardener-project/landscaper/dev/components
       componentName: github.com/gardener/gardener
       version: 'v1.11.3'
-      kind: localResource
       resourceName: blueprint
 
   imports:

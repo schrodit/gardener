@@ -17,7 +17,7 @@ imports:
 - name: componentImageVectorOverwrites
   schema:
     type: string
-- name: seedBackupProvider
+- name: seedBackup
   schema:
     type: object
     properties:
@@ -28,7 +28,7 @@ imports:
         type: object
 - name: revisionHistoryLimit
   schema:
-    type: string
+    type: number
 - name: resources
   schema:
     type: object
@@ -61,12 +61,20 @@ deployExecutions:
     - name: deploy
       type: landscaper.gardener.cloud/container
       config:
-        apiVersion: container.landscaper.gardener.cloud/v1alpha1
+        apiVersion: container.deployer.landscaper.gardener.cloud/v1alpha1
         kind: ProviderConfiguration
+
+        blueprint:
+          ref:
+            repositoryContext:
+    {{ toYaml ( index .cd.component.repositoryContexts (add (len .cd.component.repositoryContexts -1) ) | indent 10 }}
+            componentName: {{ .cd.component.name }}
+            version: {{ .cd.component.version }}
+            resourceName: blueprint
 
         importValues:
           apiVersion: imports.gardenlet.landscaper.gardener.cloud/v1alpha1
           kind: LandscaperGardenletImport
     {{ toYaml .imports | indent 6 }}
 
-        image: {{ index .cd.component.localResources "gardenlet-landscaper" "access" "imageReference" }}
+        image: {{ index .cd.component.resources "gardenlet-landscaper" "access" "imageReference" }}
