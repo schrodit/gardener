@@ -20,35 +20,53 @@ imports:
 - name: seedBackupProvider
   schema:
     type: object
-      properties:
-        name:
-          type: string
+    properties:
+      name:
+        type: string
 #       provider specific credentials just parsed as string and created as secret
-        providerCredentials:
-          type: object
+      providerCredentials:
+        type: object
 - name: revisionHistoryLimit
   schema:
     type: string
 - name: resources
   schema:
     type: object
-      properties:
-        requests:
-          type: object
-            properties:
-              cpu:
-                type: string
-              memory:
-                type: string
-        limits:
-          type: object
-            properties:
-              cpu:
-                type: string
-              memory:
-                type: string
+    properties:
+      requests:
+        type: object
+        properties:
+          cpu:
+            type: string
+          memory:
+            type: string
+      limits:
+        type: object
+        properties:
+          cpu:
+            type: string
+          memory:
+            type: string
 
 # check example/20-componentconfig-gardenlet.yaml for what can be configured
 - name: componentConfiguration
   schema:
     type: object
+
+deployExecutions:
+- name: default
+  type: GoTemplate
+  template: |
+    deployItems:
+    - name: deploy
+      type: landscaper.gardener.cloud/container
+      config:
+        apiVersion: container.landscaper.gardener.cloud/v1alpha1
+        kind: ProviderConfiguration
+
+        importValues:
+          apiVersion: imports.gardenlet.landscaper.gardener.cloud/v1alpha1
+          kind: LandscaperGardenletImport
+    {{ toYaml .imports | indent 6 }}
+
+        image: {{ index .cd.component.localResources "gardenlet-landscaper" "access" "imageReference" }}
