@@ -37,9 +37,9 @@ import (
 
 var _ = Describe("#Garden RBAC", func() {
 	var (
-		ctx context.Context
-		c   client.Client
-		crd component.Deployer
+		ctx          context.Context
+		c            client.Client
+		crd          component.Deployer
 		chartApplier kubernetes.ChartApplier
 	)
 
@@ -54,7 +54,6 @@ var _ = Describe("#Garden RBAC", func() {
 		mapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{rbacv1.SchemeGroupVersion})
 		mapper.Add(rbacv1.SchemeGroupVersion.WithKind("ClusterRole"), meta.RESTScopeRoot)
 		mapper.Add(rbacv1.SchemeGroupVersion.WithKind("ClusterRoleBinding"), meta.RESTScopeRoot)
-
 
 		renderer := cr.NewWithServerVersion(&version.Info{})
 

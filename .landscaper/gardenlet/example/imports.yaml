@@ -1,5 +1,5 @@
 apiVersion: imports.gardenlet.landscaper.gardener.cloud/v1alpha1
-kind: GardenletLandscaperImport
+kind: LandscaperGardenletImport
 runtimeCluster:
   apiVersion: landscaper.gardener.cloud/v1alpha1
   kind: Target

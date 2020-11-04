@@ -12,18 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-REGISTRY                            := eu.gcr.io/gardener-project/gardener
-APISERVER_IMAGE_REPOSITORY          := $(REGISTRY)/apiserver
-CONTROLLER_MANAGER_IMAGE_REPOSITORY := $(REGISTRY)/controller-manager
-SCHEDULER_IMAGE_REPOSITORY          := $(REGISTRY)/scheduler
-ADMISSION_IMAGE_REPOSITORY          := $(REGISTRY)/admission-controller
-SEED_ADMISSION_IMAGE_REPOSITORY     := $(REGISTRY)/seed-admission-controller
-GARDENLET_IMAGE_REPOSITORY          := $(REGISTRY)/gardenlet
-PUSH_LATEST_TAG                     := false
-VERSION                             := $(shell cat VERSION)
-EFFECTIVE_VERSION                   := $(VERSION)-$(shell git rev-parse HEAD)
-REPO_ROOT                           := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-LOCAL_GARDEN_LABEL                  := local-garden
+REGISTRY                            	:= eu.gcr.io/gardener-project/gardener
+APISERVER_IMAGE_REPOSITORY          	:= $(REGISTRY)/apiserver
+CONTROLLER_MANAGER_IMAGE_REPOSITORY 	:= $(REGISTRY)/controller-manager
+SCHEDULER_IMAGE_REPOSITORY          	:= $(REGISTRY)/scheduler
+ADMISSION_IMAGE_REPOSITORY          	:= $(REGISTRY)/admission-controller
+SEED_ADMISSION_IMAGE_REPOSITORY     	:= $(REGISTRY)/seed-admission-controller
+GARDENLET_IMAGE_REPOSITORY          	:= $(REGISTRY)/gardenlet
+LANDSCAPER_GARDENLET_IMAGE_REPOSITORY   := $(REGISTRY)/landscaper-component-gardenlet
+PUSH_LATEST_TAG                     	:= false
+VERSION                             	:= $(shell cat VERSION)
+EFFECTIVE_VERSION                   	:= $(VERSION)-$(shell git rev-parse HEAD)
+REPO_ROOT                           	:= $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+LOCAL_GARDEN_LABEL                  	:= local-garden
 
 ifneq ($(strip $(shell git status --porcelain 2>/dev/null)),)
 	EFFECTIVE_VERSION := $(EFFECTIVE_VERSION)-dirty
@@ -91,6 +92,10 @@ start-seed-admission-controller:
 start-gardenlet:
 	@./hack/local-development/start-gardenlet
 
+.PHONY: start-landscaper-gardenlet
+start-landscaper-gardenlet:
+	@./hack/local-development/start-landscaper-gardenlet $(IMPORT_PATH)
+
 #################################################################
 # Rules related to binary build, Docker image build and release #
 #################################################################
@@ -102,12 +107,13 @@ install:
 .PHONY: docker-images
 docker-images:
 	@echo "Building docker images with version and tag $(EFFECTIVE_VERSION)"
-	@docker build --build-arg EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) -t $(APISERVER_IMAGE_REPOSITORY):$(EFFECTIVE_VERSION)          -t $(APISERVER_IMAGE_REPOSITORY):latest          -f Dockerfile --target apiserver .
-	@docker build --build-arg EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) -t $(CONTROLLER_MANAGER_IMAGE_REPOSITORY):$(EFFECTIVE_VERSION) -t $(CONTROLLER_MANAGER_IMAGE_REPOSITORY):latest -f Dockerfile --target controller-manager .
-	@docker build --build-arg EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) -t $(SCHEDULER_IMAGE_REPOSITORY):$(EFFECTIVE_VERSION)          -t $(SCHEDULER_IMAGE_REPOSITORY):latest          -f Dockerfile --target scheduler .
-	@docker build --build-arg EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) -t $(ADMISSION_IMAGE_REPOSITORY):$(EFFECTIVE_VERSION)          -t $(ADMISSION_IMAGE_REPOSITORY):latest          -f Dockerfile --target admission-controller .
-	@docker build --build-arg EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) -t $(SEED_ADMISSION_IMAGE_REPOSITORY):$(EFFECTIVE_VERSION)     -t $(SEED_ADMISSION_IMAGE_REPOSITORY):latest     -f Dockerfile --target seed-admission-controller .
-	@docker build --build-arg EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) -t $(GARDENLET_IMAGE_REPOSITORY):$(EFFECTIVE_VERSION)          -t $(GARDENLET_IMAGE_REPOSITORY):latest          -f Dockerfile --target gardenlet .
+#	@docker build --build-arg EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) -t $(APISERVER_IMAGE_REPOSITORY):$(EFFECTIVE_VERSION)          	-t $(APISERVER_IMAGE_REPOSITORY):latest          	-f Dockerfile --target apiserver .
+#	@docker build --build-arg EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) -t $(CONTROLLER_MANAGER_IMAGE_REPOSITORY):$(EFFECTIVE_VERSION) 	-t $(CONTROLLER_MANAGER_IMAGE_REPOSITORY):latest 	-f Dockerfile --target controller-manager .
+#	@docker build --build-arg EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) -t $(SCHEDULER_IMAGE_REPOSITORY):$(EFFECTIVE_VERSION)          	-t $(SCHEDULER_IMAGE_REPOSITORY):latest          	-f Dockerfile --target scheduler .
+#	@docker build --build-arg EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) -t $(ADMISSION_IMAGE_REPOSITORY):$(EFFECTIVE_VERSION)          	-t $(ADMISSION_IMAGE_REPOSITORY):latest          	-f Dockerfile --target admission-controller .
+#	@docker build --build-arg EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) -t $(SEED_ADMISSION_IMAGE_REPOSITORY):$(EFFECTIVE_VERSION)     	-t $(SEED_ADMISSION_IMAGE_REPOSITORY):latest     	-f Dockerfile --target seed-admission-controller .
+#	@docker build --build-arg EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) -t $(GARDENLET_IMAGE_REPOSITORY):$(EFFECTIVE_VERSION)          	-t $(GARDENLET_IMAGE_REPOSITORY):latest          	-f Dockerfile --target gardenlet .
+	@docker build --build-arg EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) -t $(LANDSCAPER_GARDENLET_IMAGE_REPOSITORY):$(EFFECTIVE_VERSION)   -t $(LANDSCAPER_GARDENLET_IMAGE_REPOSITORY):latest  -f Dockerfile --target landscaper-gardenlet .
 
 .PHONY: docker-login
 docker-login:
@@ -121,6 +127,7 @@ docker-push:
 	@if ! docker images $(ADMISSION_IMAGE_REPOSITORY) | awk '{ print $$2 }' | grep -q -F $(EFFECTIVE_VERSION); then echo "$(ADMISSION_IMAGE_REPOSITORY) version $(EFFECTIVE_VERSION) is not yet built. Please run 'make docker-images'"; false; fi
 	@if ! docker images $(SEED_ADMISSION_IMAGE_REPOSITORY) | awk '{ print $$2 }' | grep -q -F $(EFFECTIVE_VERSION); then echo "$(SEED_ADMISSION_IMAGE_REPOSITORY) version $(EFFECTIVE_VERSION) is not yet built. Please run 'make docker-images'"; false; fi
 	@if ! docker images $(GARDENLET_IMAGE_REPOSITORY) | awk '{ print $$2 }' | grep -q -F $(EFFECTIVE_VERSION); then echo "$(GARDENLET_IMAGE_REPOSITORY) version $(EFFECTIVE_VERSION) is not yet built. Please run 'make docker-images'"; false; fi
+	@if ! docker images $(LANDSCAPER_GARDENLET_IMAGE_REPOSITORY) | awk '{ print $$2 }' | grep -q -F $(EFFECTIVE_VERSION); then echo "$(LANDSCAPER_GARDENLET_IMAGE_REPOSITORY) version $(EFFECTIVE_VERSION) is not yet built. Please run 'make docker-images'"; false; fi
 	@gcloud docker -- push $(APISERVER_IMAGE_REPOSITORY):$(EFFECTIVE_VERSION)
 	@if [[ "$(PUSH_LATEST_TAG)" == "true" ]]; then gcloud docker -- push $(APISERVER_IMAGE_REPOSITORY):latest; fi
 	@gcloud docker -- push $(CONTROLLER_MANAGER_IMAGE_REPOSITORY):$(EFFECTIVE_VERSION)
@@ -133,6 +140,8 @@ docker-push:
 	@if [[ "$(PUSH_LATEST_TAG)" == "true" ]]; then gcloud docker -- push $(SEED_ADMISSION_IMAGE_REPOSITORY):latest; fi
 	@gcloud docker -- push $(GARDENLET_IMAGE_REPOSITORY):$(EFFECTIVE_VERSION)
 	@if [[ "$(PUSH_LATEST_TAG)" == "true" ]]; then gcloud docker -- push $(GARDENLET_IMAGE_REPOSITORY):latest; fi
+	@gcloud docker -- push $(LANDSCAPER_GARDENLET_IMAGE_REPOSITORY):$(EFFECTIVE_VERSION)
+	@if [[ "$(PUSH_LATEST_TAG)" == "true" ]]; then gcloud docker -- push $(LANDSCAPER_GARDENLET_IMAGE_REPOSITORY):latest; fi
 
 #####################################################################
 # Rules for verification, formatting, linting, testing and cleaning #

@@ -31,7 +31,6 @@ import (
 	bootstraptokenutil "k8s.io/cluster-bootstrap/token/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 )
 
 // ComputeBootstrapToken computes and creates a new bootstrap token, and returns it.
@@ -76,11 +75,11 @@ func BootstrapTokenFrom(data map[string][]byte) string {
 }
 
 // ComputeKubeconfigWithBootstrapToken creates a bootstrap token secret and based on that marshals and returns a kubeconfig containing the bootstrap token
-func ComputeKubeconfigWithBootstrapToken(ctx context.Context, gardenClient client.Client, gardenClientRestConfig *rest.Config,tokenID, description string, validity time.Duration) ([]byte, error){
+func ComputeKubeconfigWithBootstrapToken(ctx context.Context, gardenClient client.Client, gardenClientRestConfig *rest.Config, tokenID, description string, validity time.Duration) ([]byte, error) {
 	var (
 		refreshBootstrapToken = true
 		bootstrapTokenSecret  *corev1.Secret
-		err error
+		err                   error
 	)
 
 	secret := &corev1.Secret{}

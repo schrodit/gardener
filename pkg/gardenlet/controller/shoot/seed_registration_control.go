@@ -508,8 +508,8 @@ func deployGardenlet(ctx context.Context, gardenClient, seedClient, shootedSeedC
 		} else {
 			// create bootstrap token with bootstrap kubeconfig in order to create CSR
 			var (
-				tokenID               = utils.ComputeSHA256Hex([]byte(shoot.Name))[:6]
-				validity              = 24 * time.Hour
+				tokenID  = utils.ComputeSHA256Hex([]byte(shoot.Name))[:6]
+				validity = 24 * time.Hour
 			)
 
 			bootstrapKubeconfig, err = bootstrap.ComputeKubeconfigWithBootstrapToken(ctx, gardenClient.Client(), &restConfig, tokenID, fmt.Sprintf("A bootstrap token for the Gardenlet for shooted seed %q.", shoot.Name), validity)

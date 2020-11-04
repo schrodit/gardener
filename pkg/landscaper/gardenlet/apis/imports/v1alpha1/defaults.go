@@ -29,7 +29,7 @@ func addDefaultingFuncs(scheme *runtime.Scheme) error {
 }
 
 // SetDefaults_GardenletLandscaperImport sets defaults for the configuration of the Gardenlet Landscaper.
-func SetDefaults_GardenletLandscaperImport(obj *GardenletLandscaperImport) {
+func SetDefaults_LandscaperGardenletImport(obj *LandscaperGardenletImport) {
 	if obj.ComponentConfiguration.GardenClientConnection == nil {
 		obj.ComponentConfiguration.GardenClientConnection = &v1alpha1.GardenClientConnection{}
 		componentbaseconfigv1alpha1.RecommendedDefaultClientConnectionConfiguration(&obj.ComponentConfiguration.GardenClientConnection.ClientConnectionConfiguration)
@@ -39,14 +39,14 @@ func SetDefaults_GardenletLandscaperImport(obj *GardenletLandscaperImport) {
 		obj.ComponentConfiguration.GardenClientConnection.ContentType = "application/json"
 	}
 
-	if  obj.ComponentConfiguration.GardenClientConnection.BootstrapKubeconfig ==  nil {
+	if obj.ComponentConfiguration.GardenClientConnection.BootstrapKubeconfig == nil {
 		obj.ComponentConfiguration.GardenClientConnection.BootstrapKubeconfig = &corev1.SecretReference{
 			Name:      common.GardenletDefaultKubeconfigBootstrapSecretName,
 			Namespace: v1beta1constants.GardenNamespace,
 		}
 	}
 
-	if  obj.ComponentConfiguration.GardenClientConnection.KubeconfigSecret ==  nil {
+	if obj.ComponentConfiguration.GardenClientConnection.KubeconfigSecret == nil {
 		obj.ComponentConfiguration.GardenClientConnection.KubeconfigSecret = &corev1.SecretReference{
 			Name:      common.GardenletDefaultKubeconfigSecretName,
 			Namespace: v1beta1constants.GardenNamespace,

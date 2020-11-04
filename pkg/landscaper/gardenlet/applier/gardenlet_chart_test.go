@@ -70,11 +70,11 @@ var (
 
 var _ = Describe("#Gardenlet Chart Test", func() {
 	var (
-		ctx          context.Context
-		c            client.Client
-		deployer     component.Deployer
-		err          error
-		chartApplier kubernetes.ChartApplier
+		ctx              context.Context
+		c                client.Client
+		deployer         component.Deployer
+		err              error
+		chartApplier     kubernetes.ChartApplier
 		universalDecoder runtime.Decoder
 	)
 
@@ -95,7 +95,6 @@ var _ = Describe("#Gardenlet Chart Test", func() {
 		Expect(rbacv1.AddToScheme(s)).NotTo(HaveOccurred())
 		// for deletion of PDB
 		Expect(policyv1beta1.AddToScheme(s)).NotTo(HaveOccurred())
-
 
 		// create decoder for unmarshalling the GardenletConfiguration from the component gardenletconfig Config Map
 		codecs := serializer.NewCodecFactory(s)
@@ -131,7 +130,7 @@ var _ = Describe("#Gardenlet Chart Test", func() {
 			mockClient.EXPECT().Delete(ctx, &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "gardenlet", Namespace: gardencorev1beta1constants.GardenNamespace}})
 			mockClient.EXPECT().Delete(ctx, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "gardenlet-configmap", Namespace: gardencorev1beta1constants.GardenNamespace}})
 			mockClient.EXPECT().Delete(ctx, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "gardenlet-imagevector-overwrite", Namespace: gardencorev1beta1constants.GardenNamespace}})
-			mockClient.EXPECT().Delete(ctx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name:  common.GardenletDefaultKubeconfigBootstrapSecretName, Namespace: gardencorev1beta1constants.GardenNamespace}})
+			mockClient.EXPECT().Delete(ctx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: common.GardenletDefaultKubeconfigBootstrapSecretName, Namespace: gardencorev1beta1constants.GardenNamespace}})
 			mockClient.EXPECT().Delete(ctx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: common.GardenletDefaultKubeconfigSecretName, Namespace: gardencorev1beta1constants.GardenNamespace}})
 			mockClient.EXPECT().Delete(ctx, &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: "gardenlet", Namespace: gardencorev1beta1constants.GardenNamespace}})
 			mockClient.EXPECT().Delete(ctx, &policyv1beta1.PodDisruptionBudget{ObjectMeta: metav1.ObjectMeta{Name: "gardenlet", Namespace: gardencorev1beta1constants.GardenNamespace}})
@@ -161,7 +160,7 @@ var _ = Describe("#Gardenlet Chart Test", func() {
 			bootstrapKubeconfig *corev1.SecretReference,
 			bootstrapKubeconfigContent *string,
 			seedConfig *gardenletconfig.SeedConfig,
-			) {
+		) {
 			gardenletValues := map[string]interface{}{
 				"enabled": true,
 			}
@@ -179,7 +178,7 @@ var _ = Describe("#Gardenlet Chart Test", func() {
 			componentConfigUsesTlsServerConfig := componentConfigTlsServerContentCert != nil && componentConfigTlsServerContentKey != nil
 			if componentConfigUsesTlsServerConfig {
 				componentConfigValues["server"] = map[string]interface{}{
-					"https" : map[string]interface{}{
+					"https": map[string]interface{}{
 						"tls": map[string]interface{}{
 							"crt": *componentConfigTlsServerContentCert,
 							"key": *componentConfigTlsServerContentKey,
@@ -204,8 +203,8 @@ var _ = Describe("#Gardenlet Chart Test", func() {
 			if usesTLSBootstrapping {
 				componentConfigValues["gardenClientConnection"] = map[string]interface{}{
 					"bootstrapKubeconfig": map[string]interface{}{
-						"name": bootstrapKubeconfig.Name,
-						"namespace": bootstrapKubeconfig.Namespace,
+						"name":       bootstrapKubeconfig.Name,
+						"namespace":  bootstrapKubeconfig.Namespace,
 						"kubeconfig": *bootstrapKubeconfigContent,
 					},
 				}
@@ -269,24 +268,23 @@ var _ = Describe("#Gardenlet Chart Test", func() {
 				validateKubeconfigSecret(ctx, c, secret, bootstrapKubeconfigContent)
 			}
 		},
-			Entry("verify the default values for the Gardenlet chart & the Gardenlet component config", nil, nil ,nil, nil, nil, nil, nil, nil, nil),
-			Entry("verify deployment with image vector override", pointer.StringPtr("dummy-override-content"), nil ,nil, nil, nil, nil, nil, nil, nil),
-			Entry("verify deployment with image vector override components", nil, pointer.StringPtr("dummy-override-content") ,nil, nil, nil, nil, nil, nil, nil),
-			Entry("verify Gardenlet with component config with TLS server configuration", nil, nil , pointer.StringPtr("dummy cert content"), pointer.StringPtr("dummy key content"), nil, nil, nil, nil, nil),
-			Entry("verify Gardenlet with component config having the Garden client connection kubeconfig set", nil, nil , nil, nil, pointer.StringPtr("dummy garden kubeconfig"), nil, nil, nil, nil),
-			Entry("verify Gardenlet with component config having the Seed client connection kubeconfig set", nil, nil , nil, nil, nil, pointer.StringPtr("dummy seed kubeconfig"), nil, nil, nil),
-			Entry("verify Gardenlet with component config having a Bootstrap kubeconfig set", nil, nil , nil, nil, nil, nil, &corev1.SecretReference{
-			Name: "gardenlet-kubeconfig-bootstrap",
+		Entry("verify the default values for the Gardenlet chart & the Gardenlet component config", nil, nil, nil, nil, nil, nil, nil, nil, nil),
+		Entry("verify deployment with image vector override", pointer.StringPtr("dummy-override-content"), nil, nil, nil, nil, nil, nil, nil, nil),
+		Entry("verify deployment with image vector override components", nil, pointer.StringPtr("dummy-override-content"), nil, nil, nil, nil, nil, nil, nil),
+		Entry("verify Gardenlet with component config with TLS server configuration", nil, nil, pointer.StringPtr("dummy cert content"), pointer.StringPtr("dummy key content"), nil, nil, nil, nil, nil),
+		Entry("verify Gardenlet with component config having the Garden client connection kubeconfig set", nil, nil, nil, nil, pointer.StringPtr("dummy garden kubeconfig"), nil, nil, nil, nil),
+		Entry("verify Gardenlet with component config having the Seed client connection kubeconfig set", nil, nil, nil, nil, nil, pointer.StringPtr("dummy seed kubeconfig"), nil, nil, nil),
+		Entry("verify Gardenlet with component config having a Bootstrap kubeconfig set", nil, nil, nil, nil, nil, nil, &corev1.SecretReference{
+			Name:      "gardenlet-kubeconfig-bootstrap",
 			Namespace: "garden",
-			}, pointer.StringPtr("dummy bootstrap kubeconfig"), nil),
-			Entry("verify that the SeedConfig is set in the component config Config Map", nil, nil , nil, nil, nil, nil, nil, nil, &gardenletconfig.SeedConfig{
-				Seed: gardencorev1beta1.Seed{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "sweet-seed",
-					},
+		}, pointer.StringPtr("dummy bootstrap kubeconfig"), nil),
+		Entry("verify that the SeedConfig is set in the component config Config Map", nil, nil, nil, nil, nil, nil, nil, nil, &gardenletconfig.SeedConfig{
+			Seed: gardencorev1beta1.Seed{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "sweet-seed",
 				},
-			}),
-
+			},
+		}),
 	)
 })
 
@@ -328,12 +326,11 @@ func validateCertSecret(ctx context.Context, c client.Client, cert *string, key 
 	Expect(secret.Type).To(Equal(expectedSecret.Type))
 }
 
-
 func validateImageVectorOverrideConfigMap(ctx context.Context, c client.Client, cm *corev1.ConfigMap, cmKey string, content *string) {
 	expectedCm := *cm
 	expectedCm.Labels = expectedLabels
 	expectedCm.Data = map[string]string{
-		cmKey :  fmt.Sprintf("%s\n", *content),
+		cmKey: fmt.Sprintf("%s\n", *content),
 	}
 
 	Expect(c.Get(
@@ -430,7 +427,6 @@ func validateServiceAccount(ctx context.Context, c client.Client, hasSeedClientC
 		return
 	}
 
-
 	expectedServiceAccount := *serviceAccount
 	expectedServiceAccount.Labels = expectedLabels
 
@@ -517,7 +513,7 @@ func validatePriorityClass(ctx context.Context, c client.Client) {
 }
 
 func getExpectedGardenletDeploymentSpec(imageVectorOverride, imageVectorOverrideComponents *string, componentConfigUsesTlsServerConfig bool, gardenClientConnectionKubeconfig, seedClientConnectionKubeconfig *string) appsv1.DeploymentSpec {
-	deployment :=  appsv1.DeploymentSpec{
+	deployment := appsv1.DeploymentSpec{
 		RevisionHistoryLimit: pointer.Int32Ptr(10),
 		Replicas:             pointer.Int32Ptr(1),
 		Selector: &metav1.LabelSelector{
@@ -568,7 +564,7 @@ func getExpectedGardenletDeploymentSpec(imageVectorOverride, imageVectorOverride
 						},
 						TerminationMessagePath:   "/dev/termination-log",
 						TerminationMessagePolicy: corev1.TerminationMessageReadFile,
-						VolumeMounts: []corev1.VolumeMount{},
+						VolumeMounts:             []corev1.VolumeMount{},
 					},
 				},
 				Volumes: []corev1.Volume{},
@@ -578,8 +574,8 @@ func getExpectedGardenletDeploymentSpec(imageVectorOverride, imageVectorOverride
 
 	if imageVectorOverride != nil {
 		deployment.Template.Spec.Containers[0].Env = append(deployment.Template.Spec.Containers[0].Env, corev1.EnvVar{
-			Name:      "IMAGEVECTOR_OVERWRITE",
-			Value:     "/charts_overwrite/images_overwrite.yaml",
+			Name:  "IMAGEVECTOR_OVERWRITE",
+			Value: "/charts_overwrite/images_overwrite.yaml",
 		})
 		deployment.Template.Spec.Containers[0].VolumeMounts = append(deployment.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
 			Name:      "gardenlet-imagevector-overwrite",
@@ -587,7 +583,7 @@ func getExpectedGardenletDeploymentSpec(imageVectorOverride, imageVectorOverride
 			MountPath: "/charts_overwrite",
 		})
 		deployment.Template.Spec.Volumes = append(deployment.Template.Spec.Volumes, corev1.Volume{
-			Name:         "gardenlet-imagevector-overwrite",
+			Name: "gardenlet-imagevector-overwrite",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
@@ -600,8 +596,8 @@ func getExpectedGardenletDeploymentSpec(imageVectorOverride, imageVectorOverride
 
 	if imageVectorOverrideComponents != nil {
 		deployment.Template.Spec.Containers[0].Env = append(deployment.Template.Spec.Containers[0].Env, corev1.EnvVar{
-			Name:      "IMAGEVECTOR_OVERWRITE_COMPONENTS",
-			Value:     "/charts_overwrite_components/components.yaml",
+			Name:  "IMAGEVECTOR_OVERWRITE_COMPONENTS",
+			Value: "/charts_overwrite_components/components.yaml",
 		})
 		deployment.Template.Spec.Containers[0].VolumeMounts = append(deployment.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
 			Name:      "gardenlet-imagevector-overwrite-components",
@@ -609,7 +605,7 @@ func getExpectedGardenletDeploymentSpec(imageVectorOverride, imageVectorOverride
 			MountPath: "/charts_overwrite_components",
 		})
 		deployment.Template.Spec.Volumes = append(deployment.Template.Spec.Volumes, corev1.Volume{
-			Name:         "gardenlet-imagevector-overwrite-components",
+			Name: "gardenlet-imagevector-overwrite-components",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
@@ -627,7 +623,7 @@ func getExpectedGardenletDeploymentSpec(imageVectorOverride, imageVectorOverride
 			ReadOnly:  true,
 		})
 		deployment.Template.Spec.Volumes = append(deployment.Template.Spec.Volumes, corev1.Volume{
-			Name:         "gardenlet-kubeconfig-garden",
+			Name: "gardenlet-kubeconfig-garden",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: "gardenlet-kubeconfig-garden",
@@ -643,7 +639,7 @@ func getExpectedGardenletDeploymentSpec(imageVectorOverride, imageVectorOverride
 			ReadOnly:  true,
 		})
 		deployment.Template.Spec.Volumes = append(deployment.Template.Spec.Volumes, corev1.Volume{
-			Name:         "gardenlet-kubeconfig-seed",
+			Name: "gardenlet-kubeconfig-seed",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: "gardenlet-kubeconfig-seed",
@@ -655,21 +651,21 @@ func getExpectedGardenletDeploymentSpec(imageVectorOverride, imageVectorOverride
 	}
 
 	deployment.Template.Spec.Containers[0].VolumeMounts = append(deployment.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
-			Name:      "gardenlet-config",
-			MountPath: "/etc/gardenlet/config",
-		},
+		Name:      "gardenlet-config",
+		MountPath: "/etc/gardenlet/config",
+	},
 	)
 
 	deployment.Template.Spec.Volumes = append(deployment.Template.Spec.Volumes, corev1.Volume{
-			Name: "gardenlet-config",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "gardenlet-configmap",
-					},
+		Name: "gardenlet-config",
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: "gardenlet-configmap",
 				},
 			},
 		},
+	},
 	)
 
 	if componentConfigUsesTlsServerConfig {
@@ -679,7 +675,7 @@ func getExpectedGardenletDeploymentSpec(imageVectorOverride, imageVectorOverride
 			MountPath: "/etc/gardenlet/srv",
 		})
 		deployment.Template.Spec.Volumes = append(deployment.Template.Spec.Volumes, corev1.Volume{
-			Name:         "gardenlet-cert",
+			Name: "gardenlet-cert",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: "gardenlet-cert",
@@ -695,20 +691,20 @@ const acceptContentType = "application/json"
 
 func getExpectedGardenletConfiguration(componentConfigUsesTlsServerConfig, hasGardenClientConnectionKubeconfig, hasSeedClientConnectionKubeconfig bool, bootstrapKubeconfig *corev1.SecretReference, seedConfig *gardenletconfig.SeedConfig) gardenletconfig.GardenletConfiguration {
 	var (
-		zero = 0
-		one = 1
-		three = 3
-		five = 5
+		zero   = 0
+		one    = 1
+		three  = 3
+		five   = 5
 		twenty = 20
 
-		logLevelInfo = "info"
-		lockObjectName = "gardenlet-leader-election"
+		logLevelInfo        = "info"
+		lockObjectName      = "gardenlet-leader-election"
 		lockObjectNamespace = "garden"
-		kubernetesLogLevel = new(klog.Level)
+		kubernetesLogLevel  = new(klog.Level)
 	)
 	Expect(kubernetesLogLevel.Set("0")).ToNot(HaveOccurred())
 
-	config :=  gardenletconfig.GardenletConfiguration{
+	config := gardenletconfig.GardenletConfiguration{
 		GardenClientConnection: &gardenletconfig.GardenClientConnection{
 			ClientConnectionConfiguration: baseconfig.ClientConnectionConfiguration{
 				AcceptContentTypes: acceptContentType,
@@ -877,7 +873,7 @@ func getEmptyGardenletConfigMap() *corev1.ConfigMap {
 
 func getEmptyPriorityClass() *schedulingv1.PriorityClass {
 	return &schedulingv1.PriorityClass{
-		ObjectMeta:       metav1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "gardenlet",
 		},
 	}

@@ -26,8 +26,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
-// ValidateGardenletLandscaperImport validates a GardenletLandscaperImport object.
-func ValidateGardenletLandscaperImport(imports *imports.GardenletLandscaperImport) field.ErrorList {
+// ValidateLandscaperImport validates a LandscaperGardenletImport object.
+func ValidateLandscaperImport(imports *imports.LandscaperGardenletImport) field.ErrorList {
 	allErrs := field.ErrorList{}
 	if imports.ComponentConfiguration.SeedConfig != nil && imports.ComponentConfiguration.SeedConfig.Spec.Backup != nil {
 		allErrs = validateBackup(imports)
@@ -57,12 +57,12 @@ func ValidateGardenletLandscaperImport(imports *imports.GardenletLandscaperImpor
 	return append(allErrs, corevalidation.ValidateSeed(seed)...)
 }
 
-func validateBackup(imports *imports.GardenletLandscaperImport) field.ErrorList {
+func validateBackup(imports *imports.LandscaperGardenletImport) field.ErrorList {
 	allErrs := field.ErrorList{}
 	seedBackupPath := field.NewPath("seedBackup")
 
 	if imports.SeedBackup == nil {
-		return  append(allErrs, field.Required(seedBackupPath, "seed backup credentials must be defined when the Seed has Backup capabilities enabled with \"componentConfiguration.seedConfig.spec.backup\""))
+		return append(allErrs, field.Required(seedBackupPath, "seed backup credentials must be defined when the Seed has Backup capabilities enabled with \"componentConfiguration.seedConfig.spec.backup\""))
 	}
 
 	if len(imports.SeedBackup.Provider) == 0 {

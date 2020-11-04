@@ -39,20 +39,20 @@ var _ = Describe("Gardenlet Landscaper testing", func() {
 			Components: []v2.ComponentDescriptor{
 				{
 					ComponentSpec: v2.ComponentSpec{
-						ObjectMeta:          v2.ObjectMeta{
+						ObjectMeta: v2.ObjectMeta{
 							Name:    "github.com/gardener/gardener",
 							Version: expectedImageVersion,
 						},
-						RepositoryContexts:  []v2.RepositoryContext{
+						RepositoryContexts: []v2.RepositoryContext{
 							{
 								Type:    "ociRegistry",
 								BaseURL: "eu.gcr.io/gardener-project/gardener/gardenlet",
 							},
 						},
-						Provider:            "internal",
-						LocalResources:      []v2.Resource{
+						Provider: "internal",
+						LocalResources: []v2.Resource{
 							{
-								ObjectMeta:          v2.ObjectMeta{
+								ObjectMeta: v2.ObjectMeta{
 									Name:    "gardenlet",
 									Version: expectedImageVersion,
 									Labels:  nil,
@@ -76,10 +76,10 @@ var _ = Describe("Gardenlet Landscaper testing", func() {
 			contentComponents := "images: dummy-components"
 			imageVectorOverrideContent := fmt.Sprintf("\"%s\"", content)
 			imageVectorOverrideComponentContent := fmt.Sprintf("\"%s\"", contentComponents)
-			landscaper.Imports = &imports.GardenletLandscaperImport{
+			landscaper.Imports = &imports.LandscaperGardenletImport{
 				ImageVectorOverwrite: &runtime.RawExtension{
 					Raw: []byte(imageVectorOverrideContent),
-			},
+				},
 				ComponentImageVectorOverwrites: &runtime.RawExtension{
 					Raw: []byte(imageVectorOverrideComponentContent),
 				},

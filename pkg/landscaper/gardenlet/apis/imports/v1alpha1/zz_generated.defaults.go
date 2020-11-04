@@ -28,10 +28,10 @@ import (
 // Public to allow building arbitrary schemes.
 // All generated defaulters are covering - they call all nested defaulters.
 func RegisterDefaults(scheme *runtime.Scheme) error {
-	scheme.AddTypeDefaultingFunc(&GardenletLandscaperImport{}, func(obj interface{}) { SetObjectDefaults_GardenletLandscaperImport(obj.(*GardenletLandscaperImport)) })
+	scheme.AddTypeDefaultingFunc(&LandscaperGardenletImport{}, func(obj interface{}) { SetObjectDefaults_LandscaperGardenletImport(obj.(*LandscaperGardenletImport)) })
 	return nil
 }
 
-func SetObjectDefaults_GardenletLandscaperImport(in *GardenletLandscaperImport) {
-	SetDefaults_GardenletLandscaperImport(in)
+func SetObjectDefaults_LandscaperGardenletImport(in *LandscaperGardenletImport) {
+	SetDefaults_LandscaperGardenletImport(in)
 }

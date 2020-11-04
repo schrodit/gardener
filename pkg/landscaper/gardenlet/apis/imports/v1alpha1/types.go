@@ -25,9 +25,9 @@ import (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// GardenletLandscaperImport defines the landscaper import for the Gardenlet.
+// LandscaperGardenletImport defines the landscaper import for the Gardenlet.
 // structure defined in Blueprint
-type GardenletLandscaperImport struct {
+type LandscaperGardenletImport struct {
 	metav1.TypeMeta `json:",inline"`
 	// RuntimeCluster is the landscaper target containing the kubeconfig for the cluster
 	// where the Gardenlet should be deployed.
@@ -60,7 +60,7 @@ type SeedBackup struct {
 	Provider string `json:"provider"`
 	// Credentials contains provider specific credentials
 	// Please check the documentation of the respective extension provider for the concrete format
-	Credentials  *runtime.RawExtension `json:"credentials"`
+	Credentials *runtime.RawExtension `json:"credentials"`
 }
 
 // Taken from github.com/gardener/landscaper/pkg/apis/core/v1alpha1

@@ -53,4 +53,3 @@ func (r *rbac) Destroy(ctx context.Context) error {
 	// do not remove RBAC roles as we do not know if there are more Gardenlets in the installation.
 	return nil
 }
-

@@ -18,6 +18,14 @@ However, when running locally, make sure to set the following environment variab
 - `COMPONENT_DESCRIPTOR_PATH` contains the path to a file containing a component descriptor for the Gardenlet. 
    This file contains the OCI image refrence to use for the Gardenlet deployment.
    You can find a sample descriptor [here](component_descriptor.yaml).
+   
+The Gardenlet landscaper can be run locally by executing the below `make` statement.
+The filepath to a valid landscaper import configuration file has to be provided as the first argument.
+The [example file](./example/imports.yaml) can be used as a blueprint.
+
+```
+make start-landscaper-gardenlet IMPORT_PATH=<filepath>
+```
 
 ## Import Configuration
 

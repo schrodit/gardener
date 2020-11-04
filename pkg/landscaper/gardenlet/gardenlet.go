@@ -23,6 +23,9 @@ import (
 
 	v2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	"github.com/gardener/component-spec/bindings-go/codec"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,29 +38,34 @@ import (
 	"github.com/gardener/gardener/pkg/client/kubernetes"
 	"github.com/gardener/gardener/pkg/landscaper/gardenlet/apis/imports"
 	"github.com/gardener/gardener/pkg/landscaper/gardenlet/applier"
-	"github.com/gardener/gardener/pkg/mock/go/context"
+	"github.com/gardener/gardener/pkg/logger"
 	"github.com/gardener/gardener/pkg/operation/common"
 	"github.com/gardener/gardener/pkg/utils"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/gardener/gardener/pkg/utils/kubernetes/bootstrap"
+	"github.com/gardener/gardener/pkg/utils/kubernetes/health"
+	"github.com/gardener/gardener/pkg/utils/retry"
 )
 
 // Landscaper has all the context and parameters needed to run a Gardenlet landscaper.
 type Landscaper struct {
-	gardenClient kubernetes.Interface
-	Imports                           *imports.GardenletLandscaperImport
-	landscaperOperation string
-	imageVectorOverride *string
+	log                            *logrus.Entry
+	gardenClient                   kubernetes.Interface
+	seedClient                     client.Client
+	Imports                        *imports.LandscaperGardenletImport
+	landscaperOperation            string
+	imageVectorOverride            *string
 	componentImageVectorOverwrites *string
-	gardenletImageRepository string
-	gardenletImageVersion string
+	gardenletImageRepository       string
+	gardenletImageVersion          string
 }
 
 // NewGardenletLandscaper creates a new Gardenlet landscaper
-func NewGardenletLandscaper(imports *imports.GardenletLandscaperImport,  landscaperOperation, componentDescriptorPath string) (*Landscaper, error) {
-	landscaper:=  &Landscaper{
-		Imports:                        imports,
-		landscaperOperation:            landscaperOperation,
+func NewGardenletLandscaper(imports *imports.LandscaperGardenletImport, landscaperOperation, componentDescriptorPath string) (*Landscaper, error) {
+	landscaper := &Landscaper{
+		log:                 logger.NewFieldLogger(logger.NewLogger("info"), "landscaper-gardenlet operation", landscaperOperation),
+		Imports:             imports,
+		landscaperOperation: landscaperOperation,
 	}
 
 	componentDescriptorData, err := ioutil.ReadFile(componentDescriptorPath)
@@ -126,6 +134,8 @@ func (g Landscaper) Delete(ctx context.Context) error {
 	if err := applier.Destroy(ctx); err != nil {
 		return fmt.Errorf("failed to delete Gardenlet chart from Seed cluster: %v", err)
 	}
+
+	g.log.Infof("Successfully deleted Gardenlet resources for Seed %q", g.Imports.ComponentConfiguration.SeedConfig.Name)
 	return nil
 }
 
@@ -141,19 +151,19 @@ func (g Landscaper) Reconcile(ctx context.Context) error {
 			seedKubeconfig = g.Imports.ComponentConfiguration.SeedClientConnection.Kubeconfig
 		}
 
-		if err := deploySeedSecret(ctx, g.gardenClient.Client(), seedKubeconfig,  g.Imports.ComponentConfiguration.SeedConfig.Spec.SecretRef); err!= nil {
+		if err := deploySeedSecret(ctx, g.gardenClient.Client(), seedKubeconfig, g.Imports.ComponentConfiguration.SeedConfig.Spec.SecretRef); err != nil {
 			return fmt.Errorf("failed to deploy secret for the Seed resource containing the Seed cluster's kubeconfig: %v", err)
 		}
 	}
 
 	// deploy seed-backup secret to Garden cluster if required
-	if seedConfig.Spec.Backup != nil  {
+	if seedConfig.Spec.Backup != nil {
 		credentials := make(map[string][]byte)
 		if err := json.Unmarshal(g.Imports.SeedBackup.Credentials.Raw, &credentials); err != nil {
 			return err
 		}
 
-		if err := deployBackupSecret(ctx, g.gardenClient.Client(), g.Imports.SeedBackup.Provider, credentials, seedConfig.Spec.Backup.SecretRef); err!= nil {
+		if err := deployBackupSecret(ctx, g.gardenClient.Client(), g.Imports.SeedBackup.Provider, credentials, seedConfig.Spec.Backup.SecretRef); err != nil {
 			return fmt.Errorf("failed to deploy secret for the Seed resource containing the Seed cluster's kubeconfig: %v", err)
 		}
 	}
@@ -184,8 +194,10 @@ func (g Landscaper) Reconcile(ctx context.Context) error {
 		return fmt.Errorf("failed creating client for runtime cluster: %v", err)
 	}
 
+	g.seedClient = seedClient.Client()
+
 	// deploy the VPA CRD first, and then later the VPA resource with the Gardenlet chart
-	if 	seedConfig.Spec.Settings.VerticalPodAutoscaler != nil && seedConfig.Spec.Settings.VerticalPodAutoscaler.Enabled {
+	if seedConfig.Spec.Settings.VerticalPodAutoscaler != nil && seedConfig.Spec.Settings.VerticalPodAutoscaler.Enabled {
 		applier, err := applier.NewVPACRDApplier(seedClient.ChartApplier(), seedClient.Client(), common.ChartPath)
 		if err != nil {
 			return fmt.Errorf("failed to create chart applier for VPA CRD: %v", err)
@@ -205,16 +217,19 @@ func (g Landscaper) Reconcile(ctx context.Context) error {
 	if err := applier.Deploy(ctx); err != nil {
 		return fmt.Errorf("failed deploying Gardenlet chart to Seed cluster: %v", err)
 	}
-	return nil
+
+	g.log.Infof("Successfully deployed Gardenlet resources for Seed %q", g.Imports.ComponentConfiguration.SeedConfig.Name)
+
+	return g.waitForRolloutToBeComplete(ctx)
 }
 
 func (g Landscaper) computeGardenletChartValues(bootstrapKubeconfig []byte) map[string]interface{} {
 	gardenClientConnection := map[string]interface{}{
-		"acceptContentTypes":   g.Imports.ComponentConfiguration.GardenClientConnection.AcceptContentTypes,
-		"contentType":          g.Imports.ComponentConfiguration.GardenClientConnection.ContentType,
-		"qps":                  g.Imports.ComponentConfiguration.GardenClientConnection.QPS,
-		"burst":                g.Imports.ComponentConfiguration.GardenClientConnection.Burst,
-		"kubeconfigSecret":    *g.Imports.ComponentConfiguration.GardenClientConnection.KubeconfigSecret,
+		"acceptContentTypes": g.Imports.ComponentConfiguration.GardenClientConnection.AcceptContentTypes,
+		"contentType":        g.Imports.ComponentConfiguration.GardenClientConnection.ContentType,
+		"qps":                g.Imports.ComponentConfiguration.GardenClientConnection.QPS,
+		"burst":              g.Imports.ComponentConfiguration.GardenClientConnection.Burst,
+		"kubeconfigSecret":   *g.Imports.ComponentConfiguration.GardenClientConnection.KubeconfigSecret,
 	}
 
 	if len(bootstrapKubeconfig) > 0 {
@@ -232,8 +247,8 @@ func (g Landscaper) computeGardenletChartValues(bootstrapKubeconfig []byte) map[
 	configValues := map[string]interface{}{
 		"gardenClientConnection": gardenClientConnection,
 		"featureGates":           g.Imports.ComponentConfiguration.FeatureGates,
-		"server": *g.Imports.ComponentConfiguration.Server,
-		"seedConfig": *g.Imports.ComponentConfiguration.SeedConfig,
+		"server":                 *g.Imports.ComponentConfiguration.Server,
+		"seedConfig":             *g.Imports.ComponentConfiguration.SeedConfig,
 	}
 
 	if g.Imports.ComponentConfiguration.ShootClientConnection != nil {
@@ -265,14 +280,14 @@ func (g Landscaper) computeGardenletChartValues(bootstrapKubeconfig []byte) map[
 	}
 
 	gardenletValues := map[string]interface{}{
-		"replicaCount":         1,
-		"serviceAccountName":   "gardenlet",
+		"replicaCount":       1,
+		"serviceAccountName": "gardenlet",
 		"image": map[string]interface{}{
 			"repository": g.gardenletImageRepository,
 			"tag":        g.gardenletImageVersion,
 		},
-		"vpa":                            g.Imports.ComponentConfiguration.SeedConfig.Spec.Settings.VerticalPodAutoscaler != nil && g.Imports.ComponentConfiguration.SeedConfig.Spec.Settings.VerticalPodAutoscaler.Enabled,
-		"config":                         configValues,
+		"vpa":    g.Imports.ComponentConfiguration.SeedConfig.Spec.Settings.VerticalPodAutoscaler != nil && g.Imports.ComponentConfiguration.SeedConfig.Spec.Settings.VerticalPodAutoscaler.Enabled,
+		"config": configValues,
 	}
 
 	if g.Imports.RevisionHistoryLimit != nil {
@@ -300,8 +315,8 @@ func (g Landscaper) computeGardenletChartValues(bootstrapKubeconfig []byte) map[
 
 func getKubeconfigWithBootstrapToken(ctx context.Context, gardenClient client.Client, gardenClientRestConfig *rest.Config, seedName string) ([]byte, error) {
 	var (
-		tokenID               = utils.ComputeSHA256Hex([]byte(seedName))[:6]
-		validity              = 24 * time.Hour
+		tokenID  = utils.ComputeSHA256Hex([]byte(seedName))[:6]
+		validity = 24 * time.Hour
 	)
 	return bootstrap.ComputeKubeconfigWithBootstrapToken(ctx, gardenClient, gardenClientRestConfig, tokenID, fmt.Sprintf("A bootstrap token for the Gardenlet for seed %q.", seedName), validity)
 }
@@ -340,7 +355,7 @@ func deploySeedSecret(ctx context.Context, gardenClient client.Client, runtimeCl
 func deployBackupSecret(ctx context.Context, gardenClient client.Client, providerName string, credentials map[string][]byte, backupSecretRef corev1.SecretReference) error {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:                       backupSecretRef.Name,
+			Name:      backupSecretRef.Name,
 			Namespace: backupSecretRef.Namespace,
 		},
 	}
@@ -407,7 +422,73 @@ func (g *Landscaper) parseGardenletImage(componentDescriptorList *v2.ComponentDe
 	if len(split) != 2 {
 		return fmt.Errorf("OCI image repository for gardenlet not found in component descriptor")
 	}
-	g.gardenletImageRepository=split[0]
-	g.gardenletImageVersion=imageVersion
+	g.gardenletImageRepository = split[0]
+	g.gardenletImageVersion = imageVersion
 	return nil
+}
+
+func (g Landscaper) waitForRolloutToBeComplete(ctx context.Context) error {
+	g.log.Info("Waiting for the Gardenlet to be rolled out successfully...")
+
+	// sleep for couple seconds to give the gardenlet process time to startup
+	time.Sleep(10 * time.Second)
+
+	var (
+		deploymentRolloutSuccessful bool
+		seedIsRegistered            bool
+	)
+
+	return retry.UntilTimeout(ctx, 10*time.Second, 15*time.Minute, func(ctx context.Context) (done bool, err error) {
+		gardenletDeployment := &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "gardenlet",
+				Namespace: v1beta1constants.GardenNamespace,
+			},
+		}
+
+		err = g.seedClient.Get(ctx, client.ObjectKey{Namespace: v1beta1constants.GardenNamespace, Name: v1beta1constants.DeploymentNameGardenlet}, gardenletDeployment)
+		if err != nil {
+			return retry.SevereError(err)
+		}
+
+		if err := health.CheckDeployment(gardenletDeployment); err != nil {
+			msg := fmt.Sprintf("gardenlet deployment is not rolled out successfuly yet...: %v", err)
+			g.log.Info(msg)
+			return retry.MinorError(fmt.Errorf(msg))
+		}
+
+		if !deploymentRolloutSuccessful {
+			g.log.Info("Gardenlet deployment rollout successful!")
+		}
+
+		seed := &gardencorev1beta1.Seed{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: g.Imports.ComponentConfiguration.SeedConfig.Name,
+			},
+		}
+
+		err = g.gardenClient.Client().Get(ctx, kutil.KeyFromObject(seed), seed)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				msg := fmt.Sprintf("seed %q is not yet registered...: %v", seed.Name, err)
+				g.log.Info(msg)
+				return retry.MinorError(fmt.Errorf(msg))
+			}
+			return retry.SevereError(err)
+		}
+
+		if !seedIsRegistered {
+			g.log.Infof("Seed %q is registered!", seed.Name)
+		}
+
+		// Check Seed without caring for the observing Gardener version (unknown to the landscaper)
+		err = health.CheckSeed(seed, seed.Status.Gardener)
+		if err != nil {
+			msg := fmt.Sprintf("seed %q is not ready yet...: %v", seed.Name, err)
+			g.log.Info(msg)
+			return retry.MinorError(fmt.Errorf(msg))
+		}
+		g.log.Info("Seed is bootstrapped and ready!")
+		return retry.Ok()
+	})
 }

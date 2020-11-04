@@ -35,10 +35,10 @@ import (
 
 var _ = Describe("#VPA CRD", func() {
 	var (
-		ctx context.Context
-		c   client.Client
-		crd component.Deployer
-		err error
+		ctx          context.Context
+		c            client.Client
+		crd          component.Deployer
+		err          error
 		chartApplier kubernetes.ChartApplier
 	)
 

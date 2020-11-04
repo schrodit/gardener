@@ -38,7 +38,8 @@ import (
 func NewCommandStartGardenletLandscaper(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "landscaper-gardenlet",
-		Short: "Launch the the Gardenlet Landscaper component",
+		Short: "Launch the the Gardener landscaper component for the Gardenlet",
+		Long:  "Gardener landscaper component for the Gardenlet. Sets up the Garden cluster and deploys the Gardenlet with TLS bootstrapping to automatically register the configured Seed cluster.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			verflag.PrintAndExitIfRequested()
 
@@ -69,7 +70,7 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("unable to load landscaper imports: %v", err)
 	}
 
-	if errs := importvalidation.ValidateGardenletLandscaperImport(imports); len(errs) > 0 {
+	if errs := importvalidation.ValidateLandscaperImport(imports); len(errs) > 0 {
 		return fmt.Errorf("errors validating the landscaper imports: %+v", errs)
 	}
 
@@ -96,14 +97,14 @@ func getLandscaperEnvironmentVariables() (string, string, string, error) {
 }
 
 // loadImportsFromFile loads the content of file and decodes it as a
-// GardenletLandscaperImport object.
-func loadImportsFromFile(file string) (*imports.GardenletLandscaperImport, error) {
+// LandscaperGardenletImport object.
+func loadImportsFromFile(file string) (*imports.LandscaperGardenletImport, error) {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
 
-	gardenletLandscaperImport := &imports.GardenletLandscaperImport{}
+	landscaperImport := &imports.LandscaperGardenletImport{}
 
 	scheme := runtime.NewScheme()
 	codecs := serializer.NewCodecFactory(scheme)
@@ -124,8 +125,8 @@ func loadImportsFromFile(file string) (*imports.GardenletLandscaperImport, error
 		return nil, err
 	}
 
-	if _, _, err := codecs.UniversalDecoder().Decode(data, nil, gardenletLandscaperImport); err != nil {
+	if _, _, err := codecs.UniversalDecoder().Decode(data, nil, landscaperImport); err != nil {
 		return nil, err
 	}
-	return gardenletLandscaperImport, nil
+	return landscaperImport, nil
 }

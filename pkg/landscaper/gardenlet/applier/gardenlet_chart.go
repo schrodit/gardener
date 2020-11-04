@@ -28,9 +28,9 @@ import (
 
 type gardenlet struct {
 	kubernetes.ChartApplier
-	chartPath      string
-	client         client.Client
-	values map[string]interface{}
+	chartPath string
+	client    client.Client
+	values    map[string]interface{}
 }
 
 // NewGardenletChartApplier can be used to deploy the Gardenlet chart.
@@ -43,9 +43,9 @@ func NewGardenletChartApplier(
 	return &gardenlet{
 		ChartApplier: applier,
 		// TODO: make sure to include dir in Dockerfile
-		chartPath:    filepath.Join(chartsRootPath, "gardener", "gardenlet"),
-		client:       client,
-		values: values,
+		chartPath: filepath.Join(chartsRootPath, "gardener", "gardenlet"),
+		client:    client,
+		values:    values,
 	}, nil
 }
 
