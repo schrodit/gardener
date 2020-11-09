@@ -27,7 +27,7 @@ import (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// GardenletConfiguration defines the configuration for the Gardener controller manager.
+// GardenletConfiguration defines the configuration for the Gardenlet.
 type GardenletConfiguration struct {
 	metav1.TypeMeta `json:",inline"`
 	// GardenClientConnection specifies the kubeconfig file and the client connection settings
