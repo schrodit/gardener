@@ -58,8 +58,6 @@ func NewCommandStartLandscaperGardenelet(ctx context.Context) *cobra.Command {
 }
 
 func run(ctx context.Context) error {
-	var err error
-
 	landscaperOperation, importPath, componentDescriptorPath, err := getLandscaperEnvironmentVariables()
 	if err != nil {
 		return err

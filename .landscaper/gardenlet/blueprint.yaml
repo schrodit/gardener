@@ -64,7 +64,7 @@ deployExecutions:
         blueprint:
           ref:
             repositoryContext:
-    {{ toYaml ( index .cd.component.repositoryContexts (add (len .cd.component.repositoryContexts -1) ) | indent 10 }}
+    {{ toYaml ( index .cd.component.repositoryContexts (add (len .cd.component.repositoryContexts) -1) ) | indent 10 }}
             componentName: {{ .cd.component.name }}
             version: {{ .cd.component.version }}
             resourceName: blueprint

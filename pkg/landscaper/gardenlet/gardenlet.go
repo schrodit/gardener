@@ -15,7 +15,6 @@
 package gardenlet
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -40,15 +39,13 @@ const (
 
 // Landscaper has all the context and parameters needed to run a Gardenlet landscaper.
 type Landscaper struct {
-	log                            *logrus.Entry
-	gardenClient                   kubernetes.Interface
-	seedClient                     kubernetes.Interface
-	Imports                        *imports.LandscaperGardenletImport
-	landscaperOperation            string
-	imageVectorOverride            *string
-	componentImageVectorOverwrites *string
-	gardenletImageRepository       string
-	gardenletImageTag              string
+	log                      *logrus.Entry
+	gardenClient             kubernetes.Interface
+	seedClient               kubernetes.Interface
+	Imports                  *imports.LandscaperGardenletImport
+	landscaperOperation      string
+	gardenletImageRepository string
+	gardenletImageTag        string
 }
 
 // NewGardenletLandscaper creates a new Gardenlet landscaper.
@@ -73,11 +70,6 @@ func NewGardenletLandscaper(imports *imports.LandscaperGardenletImport, landscap
 	err = landscaper.parseGardenletImage(componentDescriptorList)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse the component descriptor: %v", err)
-	}
-
-	err = landscaper.parseImageVectorOverride()
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse Gardenlet landscaper imports: %v", err)
 	}
 
 	// Create Garden client
@@ -113,28 +105,6 @@ func (g Landscaper) Run(ctx context.Context) error {
 	}
 }
 
-// parseImageVectorOverride parses the image vectors as a string from the import values
-// the image vectors are already properly created by the landscaper and are only handed
-// over as-is to the Gardenlet helm chart
-func (g *Landscaper) parseImageVectorOverride() error {
-	if g.Imports.ImageVectorOverwrite != nil {
-		var imageVectorOverwrite string
-		if err := json.Unmarshal(g.Imports.ImageVectorOverwrite.Raw, &imageVectorOverwrite); err != nil {
-			return err
-		}
-		g.imageVectorOverride = &imageVectorOverwrite
-	}
-
-	if g.Imports.ComponentImageVectorOverwrites != nil {
-		var componentImageVectorOverwrites string
-		if err := json.Unmarshal(g.Imports.ComponentImageVectorOverwrites.Raw, &componentImageVectorOverwrites); err != nil {
-			return err
-		}
-		g.componentImageVectorOverwrites = &componentImageVectorOverwrites
-	}
-	return nil
-}
-
 // parseGardenletImage gets the Gardenlet image from the component descriptor
 // The component descriptor is the only image source and must be provided
 func (g *Landscaper) parseGardenletImage(componentDescriptorList *v2.ComponentDescriptorList) error {
@@ -161,10 +131,17 @@ func (g *Landscaper) parseGardenletImage(componentDescriptorList *v2.ComponentDe
 
 	// split version from reference e.g eu.gcr.io/gardener-project/gardener/gardenlet:v1.11.3
 	split := strings.Split(imageReference, ":")
-	if len(split) != 2 {
-		return fmt.Errorf("OCI image repository for gardenlet not found in component descriptor")
+	if len(split) == 2 {
+		g.gardenletImageRepository = split[0]
+		g.gardenletImageTag = split[1]
+		return nil
 	}
-	g.gardenletImageRepository = split[0]
-	g.gardenletImageTag = split[1]
-	return nil
+
+	if len(split) == 3 {
+		g.gardenletImageRepository = fmt.Sprintf("%s:%s", split[0], split[1])
+		g.gardenletImageTag = split[2]
+		return nil
+	}
+
+	return fmt.Errorf("unable to determine the Gardenlet image repository and tag from the provided image reference %q in the component descriptor", imageReference)
 }

@@ -68,7 +68,7 @@ func validateBackup(imports *imports.LandscaperGardenletImport) field.ErrorList 
 	if len(imports.SeedBackup.Provider) == 0 {
 		allErrs = append(allErrs, field.Required(seedBackupPath.Child("provider"), "seed backup provider must be defined when the Seed has Backup capabilities enabled with \"componentConfiguration.seedConfig.spec.backup\""))
 	}
-	if imports.SeedBackup.Credentials.Raw == nil {
+	if imports.SeedBackup.Credentials == nil {
 		allErrs = append(allErrs, field.Required(seedBackupPath.Child("credentials"), "seed backup provider credentials must be defined when the Seed has Backup capabilities enabled with \"componentConfiguration.seedConfig.spec.backup\""))
 	}
 

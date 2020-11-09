@@ -21,6 +21,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	json "encoding/json"
 	unsafe "unsafe"
 
 	imports "github.com/gardener/gardener/pkg/landscaper/gardenlet/apis/imports"
@@ -116,7 +117,7 @@ func autoConvert_v1alpha1_LandscaperGardenletImport_To_imports_LandscaperGardenl
 	if err := Convert_v1alpha1_Target_To_imports_Target(&in.GardenCluster, &out.GardenCluster, s); err != nil {
 		return err
 	}
-	out.ImageVectorOverwrite = (*runtime.RawExtension)(unsafe.Pointer(in.ImageVectorOverwrite))
+	out.ImageVectorOverwrite = (*string)(unsafe.Pointer(in.ImageVectorOverwrite))
 	out.ComponentImageVectorOverwrites = (*runtime.RawExtension)(unsafe.Pointer(in.ComponentImageVectorOverwrites))
 	out.SeedBackup = (*imports.SeedBackup)(unsafe.Pointer(in.SeedBackup))
 	out.RevisionHistoryLimit = (*int32)(unsafe.Pointer(in.RevisionHistoryLimit))
@@ -137,7 +138,7 @@ func autoConvert_imports_LandscaperGardenletImport_To_v1alpha1_LandscaperGardenl
 	if err := Convert_imports_Target_To_v1alpha1_Target(&in.GardenCluster, &out.GardenCluster, s); err != nil {
 		return err
 	}
-	out.ImageVectorOverwrite = (*runtime.RawExtension)(unsafe.Pointer(in.ImageVectorOverwrite))
+	out.ImageVectorOverwrite = (*string)(unsafe.Pointer(in.ImageVectorOverwrite))
 	out.ComponentImageVectorOverwrites = (*runtime.RawExtension)(unsafe.Pointer(in.ComponentImageVectorOverwrites))
 	out.SeedBackup = (*SeedBackup)(unsafe.Pointer(in.SeedBackup))
 	out.RevisionHistoryLimit = (*int32)(unsafe.Pointer(in.RevisionHistoryLimit))
@@ -153,7 +154,7 @@ func Convert_imports_LandscaperGardenletImport_To_v1alpha1_LandscaperGardenletIm
 
 func autoConvert_v1alpha1_SeedBackup_To_imports_SeedBackup(in *SeedBackup, out *imports.SeedBackup, s conversion.Scope) error {
 	out.Provider = in.Provider
-	out.Credentials = (*runtime.RawExtension)(unsafe.Pointer(in.Credentials))
+	out.Credentials = (*json.RawMessage)(unsafe.Pointer(in.Credentials))
 	return nil
 }
 
@@ -164,7 +165,7 @@ func Convert_v1alpha1_SeedBackup_To_imports_SeedBackup(in *SeedBackup, out *impo
 
 func autoConvert_imports_SeedBackup_To_v1alpha1_SeedBackup(in *imports.SeedBackup, out *SeedBackup, s conversion.Scope) error {
 	out.Provider = in.Provider
-	out.Credentials = (*runtime.RawExtension)(unsafe.Pointer(in.Credentials))
+	out.Credentials = (*json.RawMessage)(unsafe.Pointer(in.Credentials))
 	return nil
 }
 

@@ -243,11 +243,10 @@ var _ = Describe("Gardenlet Landscaper reconciliation testing", func() {
 			// deployBackupSecret
 			rawBackupCredentials, err := json.Marshal(backupCredentials)
 			Expect(err).ToNot(HaveOccurred())
+			message := json.RawMessage(rawBackupCredentials)
 			landscaper.Imports.SeedBackup = &imports.SeedBackup{
-				Provider: backupProviderName,
-				Credentials: &runtime.RawExtension{
-					Raw: rawBackupCredentials,
-				},
+				Provider:    backupProviderName,
+				Credentials: &message,
 			}
 			landscaper.Imports.ComponentConfiguration.SeedConfig.Spec.Backup = &gardencorev1beta1.SeedBackup{
 				Provider:  backupProviderName,
@@ -321,9 +320,9 @@ var _ = Describe("Gardenlet Landscaper reconciliation testing", func() {
 			}
 			// set defaults for the imports to be able to calculate the values for the Gardenlet chart
 			v1alphaImport := &importsv1alpha1.LandscaperGardenletImport{}
-			importsv1alpha1.Convert_imports_LandscaperGardenletImport_To_v1alpha1_LandscaperGardenletImport(landscaper.Imports, v1alphaImport, nil)
+			Expect(importsv1alpha1.Convert_imports_LandscaperGardenletImport_To_v1alpha1_LandscaperGardenletImport(landscaper.Imports, v1alphaImport, nil)).ToNot(HaveOccurred())
 			importsv1alpha1.SetDefaults_LandscaperGardenletImport(v1alphaImport)
-			importsv1alpha1.Convert_v1alpha1_LandscaperGardenletImport_To_imports_LandscaperGardenletImport(v1alphaImport, landscaper.Imports, nil)
+			Expect(importsv1alpha1.Convert_v1alpha1_LandscaperGardenletImport_To_imports_LandscaperGardenletImport(v1alphaImport, landscaper.Imports, nil)).ToNot(HaveOccurred())
 
 			mockSeedInterface.EXPECT().ChartApplier().Return(gardenletChartApplier)
 			mockSeedInterface.EXPECT().Client().Return(mockSeedClient)

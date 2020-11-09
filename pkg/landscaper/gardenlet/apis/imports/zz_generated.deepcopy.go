@@ -21,6 +21,8 @@ limitations under the License.
 package imports
 
 import (
+	json "encoding/json"
+
 	v1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -49,8 +51,8 @@ func (in *LandscaperGardenletImport) DeepCopyInto(out *LandscaperGardenletImport
 	in.GardenCluster.DeepCopyInto(&out.GardenCluster)
 	if in.ImageVectorOverwrite != nil {
 		in, out := &in.ImageVectorOverwrite, &out.ImageVectorOverwrite
-		*out = new(runtime.RawExtension)
-		(*in).DeepCopyInto(*out)
+		*out = new(string)
+		**out = **in
 	}
 	if in.ComponentImageVectorOverwrites != nil {
 		in, out := &in.ComponentImageVectorOverwrites, &out.ComponentImageVectorOverwrites
@@ -99,8 +101,12 @@ func (in *SeedBackup) DeepCopyInto(out *SeedBackup) {
 	*out = *in
 	if in.Credentials != nil {
 		in, out := &in.Credentials, &out.Credentials
-		*out = new(runtime.RawExtension)
-		(*in).DeepCopyInto(*out)
+		*out = new(json.RawMessage)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]byte, len(*in))
+			copy(*out, *in)
+		}
 	}
 	return
 }

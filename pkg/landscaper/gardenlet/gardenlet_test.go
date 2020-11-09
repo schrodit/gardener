@@ -20,9 +20,6 @@ import (
 	v2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/runtime"
-
-	"github.com/gardener/gardener/pkg/landscaper/gardenlet/apis/imports"
 )
 
 var _ = Describe("Gardenlet Landscaper testing", func() {
@@ -71,33 +68,17 @@ var _ = Describe("Gardenlet Landscaper testing", func() {
 		}
 	})
 
-	Describe("#parseImageVectorOverride", func() {
-		It("should parse the Image Vector", func() {
-			content := "images: dummy"
-			contentComponents := "images: dummy-components"
-			imageVectorOverrideContent := fmt.Sprintf("\"%s\"", content)
-			imageVectorOverrideComponentContent := fmt.Sprintf("\"%s\"", contentComponents)
-			landscaper.Imports = &imports.LandscaperGardenletImport{
-				ImageVectorOverwrite: &runtime.RawExtension{
-					Raw: []byte(imageVectorOverrideContent),
-				},
-				ComponentImageVectorOverwrites: &runtime.RawExtension{
-					Raw: []byte(imageVectorOverrideComponentContent),
-				},
-			}
-
-			Expect(landscaper.parseImageVectorOverride()).ToNot(HaveOccurred())
-			Expect(landscaper.imageVectorOverride).ToNot(BeNil())
-			Expect(*landscaper.imageVectorOverride).To(Equal(content))
-			Expect(landscaper.componentImageVectorOverwrites).ToNot(BeNil())
-			Expect(*landscaper.componentImageVectorOverwrites).To(Equal(contentComponents))
-		})
-	})
-
 	Describe("#parseGardenletImage", func() {
 		It("should parse the Gardenlet image", func() {
-			Expect(landscaper.parseGardenletImage(&*componentDescriptorList)).ToNot(HaveOccurred())
+			Expect(landscaper.parseGardenletImage(componentDescriptorList)).ToNot(HaveOccurred())
 			Expect(landscaper.gardenletImageRepository).To(Equal(expectedImageRepository))
+			Expect(landscaper.gardenletImageTag).To(Equal(expectedImageVersion))
+		})
+		It("should parse the Gardenlet image - reference contains port", func() {
+			imageRepo := "eu.gcr.io/sap-se-gcr-k8s-public/eu_gcr_io/gardener-project:5000/gardener/gardenlet"
+			componentDescriptorList.Components[0].Resources[0].Access.(*v2.OCIRegistryAccess).ImageReference = fmt.Sprintf("%s:%s", imageRepo, expectedImageVersion)
+			Expect(landscaper.parseGardenletImage(componentDescriptorList)).ToNot(HaveOccurred())
+			Expect(landscaper.gardenletImageRepository).To(Equal(imageRepo))
 			Expect(landscaper.gardenletImageTag).To(Equal(expectedImageVersion))
 		})
 		It("should return error - Component does not exist", func() {

@@ -63,7 +63,12 @@ func (g *Landscaper) Reconcile(ctx context.Context) error {
 	// if configured, deploy the seed-backup secret to the Garden cluster
 	if seedConfig.Spec.Backup != nil {
 		credentials := make(map[string][]byte)
-		if err := json.Unmarshal(g.Imports.SeedBackup.Credentials.Raw, &credentials); err != nil {
+		marshalJSON, err := g.Imports.SeedBackup.Credentials.MarshalJSON()
+		if err != nil {
+			return err
+		}
+
+		if err := json.Unmarshal(marshalJSON, &credentials); err != nil {
 			return err
 		}
 
@@ -190,12 +195,12 @@ func (g Landscaper) computeGardenletChartValues(bootstrapKubeconfig []byte) map[
 		gardenletValues["revisionHistoryLimit"] = *g.Imports.RevisionHistoryLimit
 	}
 
-	if g.imageVectorOverride != nil {
-		gardenletValues["imageVectorOverwrite"] = *g.imageVectorOverride
+	if g.Imports.ImageVectorOverwrite != nil {
+		gardenletValues["imageVectorOverwrite"] = *g.Imports.ImageVectorOverwrite
 	}
 
-	if g.componentImageVectorOverwrites != nil {
-		gardenletValues["componentImageVectorOverwrites"] = *g.componentImageVectorOverwrites
+	if g.Imports.ComponentImageVectorOverwrites != nil {
+		gardenletValues["componentImageVectorOverwrites"] = *g.Imports.ComponentImageVectorOverwrites
 	}
 
 	if g.Imports.Resources != nil {

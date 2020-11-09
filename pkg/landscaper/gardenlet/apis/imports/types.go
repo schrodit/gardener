@@ -15,6 +15,8 @@
 package imports
 
 import (
+	"encoding/json"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,7 +39,7 @@ type LandscaperGardenletImport struct {
 	// Garden cluster (having Gardener resource groups!)
 	GardenCluster Target
 	// ImageVectorOverwrite contains the image vector override
-	ImageVectorOverwrite *runtime.RawExtension
+	ImageVectorOverwrite *string
 	// ImageVectorOverwrite contains the image vector override for components deployed by the gardenlet
 	ComponentImageVectorOverwrites *runtime.RawExtension
 	// SeedBackup contains configuration for an optional backup provider for the Seed cluster registered by the Gardenlet
@@ -60,7 +62,7 @@ type SeedBackup struct {
 	Provider string
 	// Credentials contains provider specific credentials
 	// Please check the documentation of the respective extension provider for the concrete format
-	Credentials *runtime.RawExtension
+	Credentials *json.RawMessage
 }
 
 // Taken from github.com/gardener/landscaper/pkg/apis/core/v1alpha1
