@@ -1,0 +1,4 @@
+apiVersion: v1
+description: A helm chart to deploy the necessary RBAC roles required for the Gardenlet into the Garden cluster
+name: garden-cluster-rbac
+version: 0.0.1
