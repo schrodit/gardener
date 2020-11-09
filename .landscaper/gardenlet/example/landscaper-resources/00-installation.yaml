@@ -1,0 +1,37 @@
+apiVersion: landscaper.gardener.cloud/v1alpha1
+kind: Installation
+metadata:
+  name: gardenlet
+  namespace: default
+
+spec:
+  blueprint:
+    ref:
+      repositoryContext:
+        type: ociRegistry
+        baseUrl: eu.gcr.io/gardener-project/landscaper/dev/components
+      componentName: github.com/gardener/gardener
+      version: 'v1.12.4'
+      resourceName: blueprint
+
+  imports:
+    targets:
+    - name: runtimeCluster
+      target: '#runtime-cluster'
+    - name: gardenCluster
+      target: '#garden-cluster'
+
+    data:
+    - name: config
+      configMapRef:
+        name: gardenlet-config
+        namespace: default
+        key: config
+
+  importDataMappings:
+    imageVectorOverwrite: (( config.imageVectorOverwrite ))
+    componentImageVectorOverwrites: (( config.componentImageVectorOverwrites ))
+    seedBackupProvider: (( config.seedBackupProvider ))
+    revisionHistoryLimit: (( config.revisionHistoryLimit ))
+    resources: (( config.resources ))
+    componentConfiguration: (( config.componentConfiguration ))

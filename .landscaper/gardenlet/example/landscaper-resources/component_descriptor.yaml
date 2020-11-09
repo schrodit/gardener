@@ -1,0 +1,34 @@
+# Component descriptor required by the Landscaper.
+# The Gardenlet landscaper component itself receives a component descriptor list.
+meta:
+  schemaVersion: 'v2'
+component:
+  name: 'github.com/gardener/gardener'
+  version: 'v1.12.4'
+  repositoryContexts:
+  - type: 'ociRegistry'
+    baseUrl: 'eu.gcr.io/gardener-project/landscaper/dev/components'
+  provider: 'internal'
+  # local resources must all have the same version. External resources can have different ones.
+  resources:
+  - type: blueprint
+    name: blueprint
+    version: 'v1.12.4'
+    relation: 'local'
+    access:
+      type: ociRegistry
+      imageReference: eu.gcr.io/gardener-project/landscaper/blueprints/dev/gardenlet:v1.12.4
+  - type: ociImage
+    name: gardenlet-landscaper
+    version: 'v1.12.4'
+    relation: 'local'
+    access:
+      type: ociRegistry
+      imageReference: eu.gcr.io/gardener-project/gardener/landscaper-component-gardenlet@sha256:f4b903a241e30b497ec4a28f4a8bac44f2ee0e895694aa1ac598690f9d3acb9f
+  - type: ociImage
+    name: gardenlet
+    version: 'v1.12.4'
+    relation: 'local'
+    access:
+      type: ociRegistry
+      imageReference: eu.gcr.io/sap-se-gcr-k8s-public/eu_gcr_io/gardener-project/gardener/gardenlet:v1.12.4

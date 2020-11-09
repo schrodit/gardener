@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gardenlet-config
+  namespace: default
+data:
+  config: |
+    # optional image vector. Please check docs/deployment/image_vector.md.
+    imageVectorOverwrite: ""
+
+    # optional image vector for the components deployed by the Gardenlet itself. Please check docs/deployment/image_vector.md.
+    componentImageVectorOverwrites: ""
+
+    # optional backup provider for the Seed cluster registered by the Gardenlet
+    # required when gardenlet.componentConfiguration.seedConfig.backup.secretRef is not set
+    # secret is deployed into the virtual Garden cluster
+    seedBackup:
+      provider: aws
+      credentials:
+      # Provider-related secret keys
+      #
+      # Please checkout the documentation and example manifests of your provider to find out which data keys
+      # are expected.
+      # E.g AWS:
+    #    accessKeyID: base64(access-key-id)
+    #    secretAccessKey: base64(secret-access-key)
+
+    #  optional revisionHistoryLimit field for the Gardenlet deployment. Defaults to 10.
+    revisionHistoryLimit: 10
+    resources: {}
+    #  requests:
+    #    cpu: 50m
+    #    memory: 100Mi
+    #  limits:
+    #    cpu: 1000m
+    #    memory: 2Gi
+
+    # check example/20-componentconfig-gardenlet.yaml for what can be configured
+    componentConfiguration:
+      #  apiVersion: gardenlet.config.gardener.cloud/v1alpha1
+      #  kind: GardenletConfiguration
+      # <optional Gardenlet component configuration to deviate from the default settings>
+      seedConfig:
+        metadata:
+          name: my-seed
+        spec:
+      #     <Check out the `spec` in the `50-seed.yaml` file to see what's possible to configure here>
