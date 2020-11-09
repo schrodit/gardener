@@ -12,14 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kubernetes
+package bootstrap
 
 import (
 	"context"
 	"regexp"
 	"time"
 
+	"k8s.io/client-go/rest"
+
+	bootstraputil "github.com/gardener/gardener/pkg/gardenlet/bootstrap/util"
 	"github.com/gardener/gardener/pkg/utils"
+	"github.com/gardener/gardener/pkg/utils/kubernetes"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,7 +46,7 @@ func ComputeBootstrapToken(ctx context.Context, c client.Client, tokenID, descri
 		},
 	}
 
-	if err = c.Get(ctx, Key(secret.Namespace, secret.Name), secret); client.IgnoreNotFound(err) != nil {
+	if err = c.Get(ctx, kubernetes.Key(secret.Namespace, secret.Name), secret); client.IgnoreNotFound(err) != nil {
 		return nil, err
 	}
 
@@ -77,4 +81,39 @@ func ComputeBootstrapToken(ctx context.Context, c client.Client, tokenID, descri
 // BootstrapTokenFrom returns the bootstrap token based on the secret data.
 func BootstrapTokenFrom(data map[string][]byte) string {
 	return bootstraptokenutil.TokenFromIDAndSecret(string(data[bootstraptokenapi.BootstrapTokenIDKey]), string(data[bootstraptokenapi.BootstrapTokenSecretKey]))
+}
+
+// ComputeKubeconfigWithBootstrapToken creates a bootstrap token secret and based on that marshals and returns a kubeconfig containing the bootstrap token
+func ComputeKubeconfigWithBootstrapToken(ctx context.Context, gardenClient client.Client, gardenClientRestConfig *rest.Config, tokenID, description string, validity time.Duration) ([]byte, error) {
+	var (
+		refreshBootstrapToken = true
+		bootstrapTokenSecret  *corev1.Secret
+		err                   error
+	)
+
+	secret := &corev1.Secret{}
+	if err := gardenClient.Get(ctx, kubernetes.Key(metav1.NamespaceSystem, bootstraptokenutil.BootstrapTokenSecretName(tokenID)), secret); client.IgnoreNotFound(err) != nil {
+		return nil, err
+	}
+
+	if expirationTime, ok := secret.Data[bootstraptokenapi.BootstrapTokenExpirationKey]; ok {
+		t, err := time.Parse(time.RFC3339, string(expirationTime))
+		if err != nil {
+			return nil, err
+		}
+
+		if !t.Before(metav1.Now().UTC()) {
+			bootstrapTokenSecret = secret
+			refreshBootstrapToken = false
+		}
+	}
+
+	if refreshBootstrapToken {
+		bootstrapTokenSecret, err = ComputeBootstrapToken(ctx, gardenClient, tokenID, description, validity)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return bootstraputil.MarshalKubeconfigWithToken(gardenClientRestConfig, BootstrapTokenFrom(bootstrapTokenSecret.Data))
 }
