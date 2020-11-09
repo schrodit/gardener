@@ -140,7 +140,3 @@ global:
     #     output: |-
     #       [Output]
     #           ...
-  # Deployment related configuration
-  deployment:
-    virtualGarden:
-      enabled: false
