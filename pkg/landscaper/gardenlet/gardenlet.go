@@ -1,4 +1,4 @@
-// Copyright (c) 2020 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
+// Copyright (c) 2021 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,14 +15,17 @@
 package gardenlet
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"strings"
 
 	v2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	"github.com/gardener/component-spec/bindings-go/codec"
+	landscaperv1alpha1 "github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
+	landscaperconstants "github.com/gardener/landscaper/pkg/apis/deployer/container"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gardener/gardener/pkg/client/kubernetes"
@@ -31,10 +34,8 @@ import (
 )
 
 const (
-	landscaperReconciliation = "RECONCILE"
-	landscaperDeletion       = "DELETE"
-	gardenerComponentName    = "github.com/gardener/gardener"
-	gardenletImageName       = "gardenlet"
+	gardenerComponentName = "github.com/gardener/gardener"
+	gardenletImageName    = "gardenlet"
 )
 
 // Landscaper has all the context and parameters needed to run a Gardenlet landscaper.
@@ -42,14 +43,14 @@ type Landscaper struct {
 	log                      *logrus.Entry
 	gardenClient             kubernetes.Interface
 	seedClient               kubernetes.Interface
-	Imports                  *imports.LandscaperGardenletImport
+	Imports                  *imports.Imports
 	landscaperOperation      string
 	gardenletImageRepository string
 	gardenletImageTag        string
 }
 
 // NewGardenletLandscaper creates a new Gardenlet landscaper.
-func NewGardenletLandscaper(imports *imports.LandscaperGardenletImport, landscaperOperation, componentDescriptorPath string) (*Landscaper, error) {
+func NewGardenletLandscaper(imports *imports.Imports, landscaperOperation, componentDescriptorPath string) (*Landscaper, error) {
 	landscaper := &Landscaper{
 		log:                 logger.NewFieldLogger(logger.NewLogger("info"), "landscaper-gardenlet operation", landscaperOperation),
 		Imports:             imports,
@@ -72,8 +73,13 @@ func NewGardenletLandscaper(imports *imports.LandscaperGardenletImport, landscap
 		return nil, fmt.Errorf("failed to parse the component descriptor: %v", err)
 	}
 
+	gardenTargetConfig := &landscaperv1alpha1.KubernetesClusterTargetConfig{}
+	if err := json.Unmarshal(imports.GardenCluster.Spec.Configuration, gardenTargetConfig); err != nil {
+		return nil, fmt.Errorf("failed to parse the Garden cluster kubeconfig : %v", err)
+	}
+
 	// Create Garden client
-	gardenClient, err := kubernetes.NewClientFromBytes([]byte(imports.GardenCluster.Spec.Configuration.Kubeconfig), kubernetes.WithClientOptions(
+	gardenClient, err := kubernetes.NewClientFromBytes([]byte(gardenTargetConfig.Kubeconfig), kubernetes.WithClientOptions(
 		client.Options{
 			Scheme: kubernetes.GardenScheme,
 		}))
@@ -83,8 +89,13 @@ func NewGardenletLandscaper(imports *imports.LandscaperGardenletImport, landscap
 
 	landscaper.gardenClient = gardenClient
 
+	runtimeClusterTargetConfig := &landscaperv1alpha1.KubernetesClusterTargetConfig{}
+	if err := json.Unmarshal(imports.RuntimeCluster.Spec.Configuration, runtimeClusterTargetConfig); err != nil {
+		return nil, fmt.Errorf("failed to parse the Runtime cluster kubeconfig : %v", err)
+	}
+
 	// Create Seed client
-	seedClient, err := kubernetes.NewClientFromBytes([]byte(imports.RuntimeCluster.Spec.Configuration.Kubeconfig))
+	seedClient, err := kubernetes.NewClientFromBytes([]byte(runtimeClusterTargetConfig.Kubeconfig))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create the runtime cluster client: %v", err)
 	}
@@ -96,12 +107,12 @@ func NewGardenletLandscaper(imports *imports.LandscaperGardenletImport, landscap
 
 func (g Landscaper) Run(ctx context.Context) error {
 	switch g.landscaperOperation {
-	case landscaperReconciliation:
+	case string(landscaperconstants.OperationReconcile):
 		return g.Reconcile(ctx)
-	case landscaperDeletion:
+	case string(landscaperconstants.OperationDelete):
 		return g.Delete(ctx)
 	default:
-		return fmt.Errorf(fmt.Sprintf("environment variable \"OPERATION\" must either be set to %q or %q", landscaperReconciliation, landscaperDeletion))
+		return fmt.Errorf(fmt.Sprintf("environment variable \"OPERATION\" must either be set to %q or %q", landscaperconstants.OperationReconcile, landscaperconstants.OperationDelete))
 	}
 }
 
@@ -115,16 +126,31 @@ func (g *Landscaper) parseGardenletImage(componentDescriptorList *v2.ComponentDe
 	}
 
 	// get gardenlet image from component descriptor
-	res := components[0].GetLocalResourcesByName(v2.OCIImageType, gardenletImageName)
+	res, err := components[0].GetResourcesByName(gardenletImageName)
+	if err != nil {
+		return fmt.Errorf("failed to get OCI image for gardenlet from component descriptor: %v", err)
+	}
 	if len(res) == 0 {
 		return fmt.Errorf("OCI image for gardenlet not found in component descriptor")
 	}
+
 	gardenletResource := res[0]
 	imageVersion := gardenletResource.GetVersion()
 	if len(imageVersion) == 0 {
 		return fmt.Errorf("OCI image version for gardenlet not found in component descriptor")
 	}
-	imageReference := gardenletResource.Access.(*v2.OCIRegistryAccess).ImageReference
+
+	access := gardenletResource.Access
+	if access == nil {
+		return fmt.Errorf("cannot get OCI image reference for gardenlet from component descriptor: %v", err)
+	}
+
+	ociRegistryObjectAccessor := &v2.OCIRegistryAccess{}
+	if err := ociRegistryObjectAccessor.SetData(access.Raw); err != nil {
+		return fmt.Errorf("OCI image reference for gardenlet not found in component descriptor: %v", err)
+	}
+
+	imageReference := ociRegistryObjectAccessor.ImageReference
 	if len(imageReference) == 0 {
 		return fmt.Errorf("OCI image reference for gardenlet not found in component descriptor")
 	}

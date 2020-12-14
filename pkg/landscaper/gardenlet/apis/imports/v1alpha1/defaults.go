@@ -1,4 +1,4 @@
-// Copyright (c) 2020 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
+// Copyright (c) 2021 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,8 +28,8 @@ func addDefaultingFuncs(scheme *runtime.Scheme) error {
 	return RegisterDefaults(scheme)
 }
 
-// SetDefaults_GardenletLandscaperImport sets defaults for the configuration of the Gardenlet Landscaper.
-func SetDefaults_LandscaperGardenletImport(obj *LandscaperGardenletImport) {
+// SetDefaults_Imports sets defaults for the configuration of the Gardenlet Landscaper.
+func SetDefaults_Imports(obj *Imports) {
 	if obj.ComponentConfiguration.GardenClientConnection == nil {
 		obj.ComponentConfiguration.GardenClientConnection = &v1alpha1.GardenClientConnection{}
 		componentbaseconfigv1alpha1.RecommendedDefaultClientConnectionConfiguration(&obj.ComponentConfiguration.GardenClientConnection.ClientConnectionConfiguration)

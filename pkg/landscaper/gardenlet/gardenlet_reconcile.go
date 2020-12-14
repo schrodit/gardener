@@ -1,4 +1,4 @@
-// Copyright (c) 2020 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
+// Copyright (c) 2021 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -50,9 +50,9 @@ func (g *Landscaper) Reconcile(ctx context.Context) error {
 	// deploy the Seed secret containing the Seed cluster kubeconfig to the Garden cluster
 	// only deployed if secret reference is explicitly configured in the Seed resource in the import configuration
 	if g.Imports.ComponentConfiguration.SeedConfig.Spec.SecretRef != nil {
-		seedKubeconfig := g.Imports.RuntimeCluster.Spec.Configuration.Kubeconfig
+		seedKubeconfig := g.Imports.RuntimeCluster.Spec.Configuration
 		if g.Imports.ComponentConfiguration.SeedClientConnection != nil && len(g.Imports.ComponentConfiguration.SeedClientConnection.Kubeconfig) > 0 {
-			seedKubeconfig = g.Imports.ComponentConfiguration.SeedClientConnection.Kubeconfig
+			seedKubeconfig = []byte(g.Imports.ComponentConfiguration.SeedClientConnection.Kubeconfig)
 		}
 
 		if err := g.deploySeedSecret(ctx, seedKubeconfig, g.Imports.ComponentConfiguration.SeedConfig.Spec.SecretRef); err != nil {
@@ -61,7 +61,7 @@ func (g *Landscaper) Reconcile(ctx context.Context) error {
 	}
 
 	// if configured, deploy the seed-backup secret to the Garden cluster
-	if seedConfig.Spec.Backup != nil {
+	if g.Imports.SeedBackup != nil && seedConfig.Spec.Backup != nil {
 		credentials := make(map[string][]byte)
 		marshalJSON, err := g.Imports.SeedBackup.Credentials.MarshalJSON()
 		if err != nil {
@@ -88,23 +88,6 @@ func (g *Landscaper) Reconcile(ctx context.Context) error {
 		bootstrapKubeconfig, err = g.getKubeconfigWithBootstrapToken(ctx, seedConfig.ObjectMeta.Name)
 		if err != nil {
 			return fmt.Errorf("failed to compute the bootstrap kubeconfig: %v", err)
-		}
-	}
-
-	// create RBAC resources in the Garden cluster that are required for the Gardenlet to work
-	rbacApplier := applier.NewGardenRBACApplier(g.gardenClient.ChartApplier(), GetChartPath())
-	if err := rbacApplier.Deploy(ctx); err != nil {
-		return fmt.Errorf("failed to deploy RBAC resources to the Garden cluster: %v", err)
-	}
-
-	// deploy the VPA CRD first, and then later the VPA resource with the Gardenlet chart
-	if seedConfig.Spec.Settings != nil && seedConfig.Spec.Settings.VerticalPodAutoscaler != nil && seedConfig.Spec.Settings.VerticalPodAutoscaler.Enabled {
-		applier, err := applier.NewVPACRDApplier(g.seedClient.ChartApplier(), GetChartPath())
-		if err != nil {
-			return fmt.Errorf("failed to create the chart applier for VPA CRD: %v", err)
-		}
-		if err := applier.Deploy(ctx); err != nil {
-			return fmt.Errorf("failed to deploy VPA CRD to the Seed cluster: %v", err)
 		}
 	}
 
@@ -187,12 +170,7 @@ func (g Landscaper) computeGardenletChartValues(bootstrapKubeconfig []byte) map[
 			"repository": g.gardenletImageRepository,
 			"tag":        g.gardenletImageTag,
 		},
-		"vpa":    g.Imports.ComponentConfiguration.SeedConfig.Spec.Settings.VerticalPodAutoscaler != nil && g.Imports.ComponentConfiguration.SeedConfig.Spec.Settings.VerticalPodAutoscaler.Enabled,
 		"config": configValues,
-	}
-
-	if g.Imports.RevisionHistoryLimit != nil {
-		gardenletValues["revisionHistoryLimit"] = *g.Imports.RevisionHistoryLimit
 	}
 
 	if g.Imports.ImageVectorOverwrite != nil {
@@ -306,7 +284,7 @@ func (g *Landscaper) isSeedBootstrapped(ctx context.Context, seedMeta metav1.Obj
 	return seed.Status.KubernetesVersion != nil, nil
 }
 
-func (g *Landscaper) deploySeedSecret(ctx context.Context, runtimeClusterKubeconfig string, secretRef *corev1.SecretReference) error {
+func (g *Landscaper) deploySeedSecret(ctx context.Context, runtimeClusterKubeconfig []byte, secretRef *corev1.SecretReference) error {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secretRef.Name,
@@ -316,7 +294,7 @@ func (g *Landscaper) deploySeedSecret(ctx context.Context, runtimeClusterKubecon
 
 	if _, err := controllerutil.CreateOrUpdate(ctx, g.gardenClient.Client(), secret, func() error {
 		secret.Data = map[string][]byte{
-			kubernetes.KubeConfig: []byte(runtimeClusterKubeconfig),
+			kubernetes.KubeConfig: runtimeClusterKubeconfig,
 		}
 		secret.Type = corev1.SecretTypeOpaque
 		return nil

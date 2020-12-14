@@ -45,7 +45,7 @@ import (
 	gardenletconfig "github.com/gardener/gardener/pkg/gardenlet/apis/config"
 	gardenletconfigv1alpha1 "github.com/gardener/gardener/pkg/gardenlet/apis/config/v1alpha1"
 	"github.com/gardener/gardener/pkg/landscaper/gardenlet/applier"
-	appliercommon "github.com/gardener/gardener/pkg/landscaper/gardenlet/applier/common"
+	appliercommon "github.com/gardener/gardener/pkg/landscaper/gardenlet/applier/test_common"
 	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
 	"github.com/gardener/gardener/pkg/operation/botanist/component"
 	"github.com/gardener/gardener/pkg/operation/common"

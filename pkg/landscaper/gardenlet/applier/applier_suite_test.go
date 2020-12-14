@@ -27,5 +27,5 @@ const (
 
 func TestApplier(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Gardenlet Landscaper Applier Suite")
+	RunSpecs(t, "Landscaper Gardenlet Applier Suite")
 }

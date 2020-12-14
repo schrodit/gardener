@@ -1,4 +1,4 @@
-// Copyright (c) 2020 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
+// Copyright (c) 2021 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"time"
 
+	landscaperv1alpha1 "github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -28,7 +29,6 @@ import (
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	schedulingv1 "k8s.io/api/scheduling/v1"
-	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,7 +51,7 @@ import (
 	gardenletconfigv1alpha1 "github.com/gardener/gardener/pkg/gardenlet/apis/config/v1alpha1"
 	"github.com/gardener/gardener/pkg/landscaper/gardenlet/apis/imports"
 	importsv1alpha1 "github.com/gardener/gardener/pkg/landscaper/gardenlet/apis/imports/v1alpha1"
-	appliercommon "github.com/gardener/gardener/pkg/landscaper/gardenlet/applier/common"
+	appliercommon "github.com/gardener/gardener/pkg/landscaper/gardenlet/applier/test_common"
 	"github.com/gardener/gardener/pkg/logger"
 	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
 	mock "github.com/gardener/gardener/pkg/mock/gardener/client/kubernetes"
@@ -96,7 +96,7 @@ var _ = Describe("Gardenlet Landscaper reconciliation testing", func() {
 			gardenClient: mockGardenInterface,
 			seedClient:   mockSeedInterface,
 			log:          logger.NewNopLogger().WithContext(ctx),
-			Imports: &imports.LandscaperGardenletImport{
+			Imports: &imports.Imports{
 				ComponentConfiguration: gardenletconfigv1alpha1.GardenletConfiguration{
 					SeedConfig: &gardenletconfigv1alpha1.SeedConfig{
 						Seed: *seed,
@@ -118,12 +118,6 @@ var _ = Describe("Gardenlet Landscaper reconciliation testing", func() {
 
 	Describe("#Reconcile", func() {
 		var (
-			rbacChartApplier kubernetes.ChartApplier
-			fakeRBACClient   client.Client
-
-			vpaCRDChartApplier kubernetes.ChartApplier
-			fakeVpaCRDClient   client.Client
-
 			gardenletChartApplier          kubernetes.ChartApplier
 			fakeGardenletChartClient       client.Client
 			gardenletChartUniversalDecoder runtime.Decoder
@@ -141,7 +135,7 @@ var _ = Describe("Gardenlet Landscaper reconciliation testing", func() {
 				Namespace: seedSecretNamespace,
 			}
 
-			kubeconfigContentRuntimeCluster = "very secure"
+			kubeconfigContentRuntimeCluster = []byte("very secure")
 
 			backupSecretName      = "backup-secret"
 			backupSecretNamespace = "garden"
@@ -171,14 +165,8 @@ var _ = Describe("Gardenlet Landscaper reconciliation testing", func() {
 
 		// Before each ensures the chart appliers to have fake clients (cannot use mocks when applying charts)
 		BeforeEach(func() {
-			renderer := cr.NewWithServerVersion(&version.Info{})
-
-			rbacScheme := runtime.NewScheme()
-			vpaScheme := runtime.NewScheme()
 			gardenletChartScheme := runtime.NewScheme()
 
-			Expect(rbacv1.AddToScheme(rbacScheme)).NotTo(HaveOccurred())
-			Expect(apiextensionsv1beta1.AddToScheme(vpaScheme)).NotTo(HaveOccurred())
 			Expect(corev1.AddToScheme(gardenletChartScheme)).NotTo(HaveOccurred())
 			Expect(appsv1.AddToScheme(gardenletChartScheme)).NotTo(HaveOccurred())
 			Expect(gardenletconfig.AddToScheme(gardenletChartScheme)).NotTo(HaveOccurred())
@@ -190,16 +178,7 @@ var _ = Describe("Gardenlet Landscaper reconciliation testing", func() {
 			codecs := serializer.NewCodecFactory(gardenletChartScheme)
 			gardenletChartUniversalDecoder = codecs.UniversalDecoder()
 
-			fakeRBACClient = fake.NewFakeClientWithScheme(rbacScheme)
-			fakeVpaCRDClient = fake.NewFakeClientWithScheme(vpaScheme)
 			fakeGardenletChartClient = fake.NewFakeClientWithScheme(gardenletChartScheme)
-
-			rbacMapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{rbacv1.SchemeGroupVersion})
-			rbacMapper.Add(rbacv1.SchemeGroupVersion.WithKind("ClusterRole"), meta.RESTScopeRoot)
-			rbacMapper.Add(rbacv1.SchemeGroupVersion.WithKind("ClusterRoleBinding"), meta.RESTScopeRoot)
-
-			vpaMapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{apiextensionsv1beta1.SchemeGroupVersion})
-			vpaMapper.Add(apiextensionsv1beta1.SchemeGroupVersion.WithKind("CustomResourceDefinition"), meta.RESTScopeRoot)
 
 			gardenletMapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{corev1.SchemeGroupVersion, appsv1.SchemeGroupVersion})
 			gardenletMapper.Add(appsv1.SchemeGroupVersion.WithKind("Deployment"), meta.RESTScopeNamespace)
@@ -213,8 +192,6 @@ var _ = Describe("Gardenlet Landscaper reconciliation testing", func() {
 				GitVersion: "1.14.0",
 			})
 
-			rbacChartApplier = kubernetes.NewChartApplier(renderer, kubernetes.NewApplier(fakeRBACClient, rbacMapper))
-			vpaCRDChartApplier = kubernetes.NewChartApplier(renderer, kubernetes.NewApplier(fakeVpaCRDClient, vpaMapper))
 			gardenletChartApplier = kubernetes.NewChartApplier(gardenletChartRenderer, kubernetes.NewApplier(fakeGardenletChartClient, gardenletMapper))
 		})
 
@@ -222,11 +199,9 @@ var _ = Describe("Gardenlet Landscaper reconciliation testing", func() {
 		It("should successfully reconcile", func() {
 			// deploy seed secret
 			landscaper.Imports.ComponentConfiguration.SeedConfig.Spec = gardencorev1beta1.SeedSpec{SecretRef: seedSecretRef}
-			landscaper.Imports.RuntimeCluster = imports.Target{
-				Spec: imports.TargetSpec{
-					Configuration: imports.KubernetesClusterTargetConfig{
-						Kubeconfig: kubeconfigContentRuntimeCluster,
-					},
+			landscaper.Imports.RuntimeCluster = landscaperv1alpha1.Target{
+				Spec: landscaperv1alpha1.TargetSpec{
+					Configuration: kubeconfigContentRuntimeCluster,
 				},
 			}
 
@@ -235,7 +210,7 @@ var _ = Describe("Gardenlet Landscaper reconciliation testing", func() {
 
 			expectedSecret := *seedSecret
 			expectedSecret.Data = map[string][]byte{
-				"kubeconfig": []byte(kubeconfigContentRuntimeCluster),
+				"kubeconfig": kubeconfigContentRuntimeCluster,
 			}
 			expectedSecret.Type = corev1.SecretTypeOpaque
 			mockGardenClient.EXPECT().Update(ctx, &expectedSecret).Return(nil)
@@ -246,7 +221,7 @@ var _ = Describe("Gardenlet Landscaper reconciliation testing", func() {
 			message := json.RawMessage(rawBackupCredentials)
 			landscaper.Imports.SeedBackup = &imports.SeedBackup{
 				Provider:    backupProviderName,
-				Credentials: &message,
+				Credentials: message,
 			}
 			landscaper.Imports.ComponentConfiguration.SeedConfig.Spec.Backup = &gardencorev1beta1.SeedBackup{
 				Provider:  backupProviderName,
@@ -284,20 +259,9 @@ var _ = Describe("Gardenlet Landscaper reconciliation testing", func() {
 				return nil
 			})
 
-			// RBAC applier
-			mockGardenInterface.EXPECT().ChartApplier().Return(rbacChartApplier)
-
 			defer test.WithVars(
 				&GetChartPath, func() string { return chartsRootPath },
 			)()
-
-			// VPA CRD
-			landscaper.Imports.ComponentConfiguration.SeedConfig.Spec.Settings = &gardencorev1beta1.SeedSettings{
-				VerticalPodAutoscaler: &gardencorev1beta1.SeedSettingVerticalPodAutoscaler{
-					Enabled: true,
-				},
-			}
-			mockSeedInterface.EXPECT().ChartApplier().Return(vpaCRDChartApplier)
 
 			// Gardenlet chart for the Seed cluster
 			mockSeedInterface.EXPECT().Client().Return(mockSeedClient)
@@ -319,10 +283,10 @@ var _ = Describe("Gardenlet Landscaper reconciliation testing", func() {
 				},
 			}
 			// set defaults for the imports to be able to calculate the values for the Gardenlet chart
-			v1alphaImport := &importsv1alpha1.LandscaperGardenletImport{}
-			Expect(importsv1alpha1.Convert_imports_LandscaperGardenletImport_To_v1alpha1_LandscaperGardenletImport(landscaper.Imports, v1alphaImport, nil)).ToNot(HaveOccurred())
-			importsv1alpha1.SetDefaults_LandscaperGardenletImport(v1alphaImport)
-			Expect(importsv1alpha1.Convert_v1alpha1_LandscaperGardenletImport_To_imports_LandscaperGardenletImport(v1alphaImport, landscaper.Imports, nil)).ToNot(HaveOccurred())
+			v1alphaImport := &importsv1alpha1.Imports{}
+			Expect(importsv1alpha1.Convert_imports_Imports_To_v1alpha1_Imports(landscaper.Imports, v1alphaImport, nil)).ToNot(HaveOccurred())
+			importsv1alpha1.SetDefaults_Imports(v1alphaImport)
+			Expect(importsv1alpha1.Convert_v1alpha1_Imports_To_imports_Imports(v1alphaImport, landscaper.Imports, nil)).ToNot(HaveOccurred())
 
 			mockSeedInterface.EXPECT().ChartApplier().Return(gardenletChartApplier)
 			mockSeedInterface.EXPECT().Client().Return(mockSeedClient)
@@ -376,17 +340,6 @@ var _ = Describe("Gardenlet Landscaper reconciliation testing", func() {
 			// start reconciliation
 			err = landscaper.Reconcile(ctx)
 			Expect(err).ToNot(HaveOccurred())
-
-			// check RBAC chart has been applied to the Garden cluster
-			appliercommon.ValidateGardenletRBACChartResources(ctx, fakeRBACClient)
-
-			// check VPA CRD chart has been applied to the Seed cluster
-			definition := apiextensionsv1beta1.CustomResourceDefinition{}
-			Expect(fakeVpaCRDClient.Get(
-				ctx,
-				client.ObjectKey{Name: "verticalpodautoscalers.autoscaling.k8s.io"},
-				&definition,
-			)).ToNot(HaveOccurred())
 
 			// verify resources applied via the Gardenlet chart
 			expectedLabels := map[string]string{
@@ -756,7 +709,7 @@ var _ = Describe("Gardenlet Landscaper reconciliation testing", func() {
 				Namespace: secretNamespace,
 			}
 
-			kubeconfigContent = "very secure"
+			kubeconfigContent = []byte("very secure")
 		)
 
 		It("should create the secret successfully", func() {

@@ -8,17 +8,19 @@ require (
 	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/emicklei/go-restful v2.9.6+incompatible
 	github.com/envoyproxy/go-control-plane v0.9.7-0.20200730005029-803dd64f0468
+	github.com/gardener/component-spec/bindings-go v0.0.0-20201215161450-f36336f4c2ce
 	github.com/gardener/etcd-druid v0.3.0
 	github.com/gardener/external-dns-management v0.7.18
 	github.com/gardener/gardener-resource-manager v0.18.0
 	github.com/gardener/hvpa-controller v0.3.1
+	github.com/gardener/landscaper v0.0.0-20210113112407-2c856ff658ee
 	github.com/gardener/machine-controller-manager v0.33.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-logr/logr v0.1.0
+	github.com/go-logr/logr v0.3.0
 	github.com/go-openapi/spec v0.19.3
 	github.com/gobuffalo/packr v1.30.1
 	github.com/gogo/protobuf v1.3.1
-	github.com/golang/mock v1.4.4-0.20200731163441-8734ec565a4d
+	github.com/golang/mock v1.4.4
 	github.com/googleapis/gnostic v0.3.1
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/golang-lru v0.5.4
@@ -31,28 +33,26 @@ require (
 	github.com/prometheus/client_golang v1.8.0
 	github.com/robfig/cron v1.2.0
 	github.com/sirupsen/logrus v1.6.0
-	github.com/spf13/cobra v1.0.0
+	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.6.1
+	github.com/spf13/viper v1.7.0
 	github.com/texttheater/golang-levenshtein v0.0.0-20191208221605-eb6844b05fc6
-	go.uber.org/zap v1.15.0
+	go.uber.org/zap v1.16.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
-	golang.org/x/net v0.0.0-20200625001655-4c5254603344 // indirect
-	golang.org/x/sys v0.0.0-20200806060901-a37d78b92225 // indirect
+	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
 	gomodules.xyz/jsonpatch/v2 v2.1.0
 	gopkg.in/yaml.v2 v2.3.0
 	istio.io/api v0.0.0-20201123152548-197f11e4ea09
 	istio.io/client-go v1.8.1
-	k8s.io/api v0.18.10
+	k8s.io/api v0.19.5
 	k8s.io/apiextensions-apiserver v0.18.10
-	k8s.io/apimachinery v0.18.10
+	k8s.io/apimachinery v0.19.5
 	k8s.io/apiserver v0.18.10
 	k8s.io/autoscaler v0.0.0-20190805135949-100e91ba756e
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/cluster-bootstrap v0.18.10
-	k8s.io/code-generator v0.18.10
+	k8s.io/code-generator v0.19.5
 	k8s.io/component-base v0.18.10
 	k8s.io/gengo v0.0.0-20200413195148-3a45101e95ac
 	k8s.io/helm v2.16.1+incompatible
@@ -62,9 +62,9 @@ require (
 	k8s.io/kube-scheduler v0.18.10
 	k8s.io/kubelet v0.18.10
 	k8s.io/metrics v0.18.10
-	k8s.io/utils v0.0.0-20200619165400-6e3d28b6ed19
+	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
 	sigs.k8s.io/controller-runtime v0.6.3
-	sigs.k8s.io/controller-tools v0.3.0
+	sigs.k8s.io/controller-tools v0.3.1-0.20200517180335-820a4a27ea84
 	sigs.k8s.io/yaml v1.2.0
 )
 

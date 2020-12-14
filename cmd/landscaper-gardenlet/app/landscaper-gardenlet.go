@@ -21,6 +21,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	landscaperconstants "github.com/gardener/landscaper/pkg/apis/deployer/container"
+
 	gardenletconfig "github.com/gardener/gardener/pkg/gardenlet/apis/config"
 	gardenletconfigv1alpha1 "github.com/gardener/gardener/pkg/gardenlet/apis/config/v1alpha1"
 	"github.com/gardener/gardener/pkg/landscaper/gardenlet"
@@ -38,7 +40,7 @@ import (
 func NewCommandStartLandscaperGardenelet(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "landscaper-gardenlet",
-		Short: "Launch the Gardener landscaper component for the Gardenlet.",
+		Short: "Launch the landscaper component for the Gardenlet.",
 		Long:  "Gardener landscaper component for the Gardenlet. Sets up the Garden cluster and deploys the Gardenlet with TLS bootstrapping to automatically register the configured Seed cluster.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			verflag.PrintAndExitIfRequested()
@@ -82,27 +84,32 @@ func run(ctx context.Context) error {
 
 func getLandscaperEnvironmentVariables() (string, string, string, error) {
 	var operation string
-	if operation = os.Getenv("OPERATION"); operation == "" {
-		return "", "", "", fmt.Errorf("environment variable \"OPERATION\" has to be set and must either be \"RECONCILE\" or \"DELETE\"")
+	if operation = os.Getenv(landscaperconstants.OperationName); operation != string(landscaperconstants.OperationReconcile) && operation != string(landscaperconstants.OperationDelete) {
+		return "", "", "", fmt.Errorf("environment variable \"%s\" has to be set and must either be \"%s\" or \"%s\"", landscaperconstants.OperationName, landscaperconstants.OperationReconcile, landscaperconstants.OperationDelete)
 	}
 
-	var importPath string
-	if importPath = os.Getenv("IMPORTS_PATH"); importPath == "" {
-		return "", "", "", fmt.Errorf("environemnt variable \"IMPORTS_PATH\" has to be set and point to the file containing the configuration for the Gardenlet landscaper")
+	var importPath, componentDescriptorPath string
+
+	if importPath = os.Getenv(landscaperconstants.ImportsPathName); importPath == "" {
+		return "", "", "", fmt.Errorf("environment variable \"%s\" has to be set and point to the file containing the configuration for the Gardenlet landscaper", landscaperconstants.ImportsPathName)
 	}
 
-	return operation, importPath, os.Getenv("COMPONENT_DESCRIPTOR_PATH"), nil
+	if componentDescriptorPath = os.Getenv(landscaperconstants.ComponentDescriptorPathName); componentDescriptorPath == "" {
+		return "", "", "", fmt.Errorf("environment variable \"%s\" has to be set and point to the file containing the component descriptor for the Gardenlet landscaper", landscaperconstants.ComponentDescriptorPathName)
+	}
+
+	return operation, importPath, componentDescriptorPath, nil
 }
 
 // loadImportsFromFile loads the content of file and decodes it as a
-// LandscaperGardenletImport object.
-func loadImportsFromFile(file string) (*imports.LandscaperGardenletImport, error) {
+// Imports object.
+func loadImportsFromFile(file string) (*imports.Imports, error) {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
 
-	landscaperImport := &imports.LandscaperGardenletImport{}
+	landscaperImport := &imports.Imports{}
 
 	scheme := runtime.NewScheme()
 	codecs := serializer.NewCodecFactory(scheme)

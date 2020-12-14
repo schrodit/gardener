@@ -291,7 +291,7 @@ func (g *GardenerSeedAdmissionController) defaultShootControlPlanePodsSchedulerN
 
 	resp := admission.Allowed("")
 	resp.Patches = []jsonpatch.Operation{
-		jsonpatch.NewPatch("replace", "/spec/schedulerName", seedadmission.GardenerShootControlPlaneSchedulerName),
+		jsonpatch.NewOperation("replace", "/spec/schedulerName", seedadmission.GardenerShootControlPlaneSchedulerName),
 	}
 
 	respond(w, &admission.Request{AdmissionRequest: *receivedReview.Request}, resp)

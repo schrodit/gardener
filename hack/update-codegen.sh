@@ -159,26 +159,7 @@ bash "${PROJECT_ROOT}"/vendor/k8s.io/code-generator/generate-internal-groups.sh 
   github.com/gardener/gardener/pkg/landscaper/gardenlet/apis \
   github.com/gardener/gardener/pkg/landscaper/gardenlet/apis \
   "imports:v1alpha1" \
-  --extra-peer-dirs=github.com/gardener/gardener/pkg/landscaper/gardenlet/apis/imports, github.com/gardener/gardener/pkg/gardenlet/apis/config,github.com/gardener/landscaper/pkg/apis/core/v1alpha1,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/conversion,k8s.io/apimachinery/pkg/runtime \
-  -h "${PROJECT_ROOT}/hack/LICENSE_BOILERPLATE.txt"
-
-# Componentconfig for admission plugins
-
-bash "${PROJECT_ROOT}"/vendor/k8s.io/code-generator/generate-internal-groups.sh \
-  deepcopy,defaulter \
-  github.com/gardener/gardener/pkg/client/componentconfig \
-  github.com/gardener/gardener/plugin/pkg/shoot/tolerationrestriction/apis \
-  github.com/gardener/gardener/plugin/pkg/shoot/tolerationrestriction/apis \
-  "shoottolerationrestriction:v1alpha1" \
-  -h "${PROJECT_ROOT}/hack/LICENSE_BOILERPLATE.txt"
-
-bash "${PROJECT_ROOT}"/vendor/k8s.io/code-generator/generate-internal-groups.sh \
-  conversion \
-  github.com/gardener/gardener/pkg/client/componentconfig \
-  github.com/gardener/gardener/plugin/pkg/shoot/tolerationrestriction/apis \
-  github.com/gardener/gardener/plugin/pkg/shoot/tolerationrestriction/apis \
-  "shoottolerationrestriction:v1alpha1" \
-  --extra-peer-dirs=github.com/gardener/gardener/plugin/pkg/shoot/tolerationrestriction/apis/shoottolerationrestriction,github.com/gardener/gardener/plugin/pkg/shoot/tolerationrestriction/apis/shoottolerationrestriction/v1alpha1,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/conversion,k8s.io/apimachinery/pkg/runtime,k8s.io/component-base/config,k8s.io/component-base/config/v1alpha1 \
+  --extra-peer-dirs=github.com/gardener/gardener/pkg/landscaper/gardenlet/apis/imports,github.com/gardener/gardener/pkg/gardenlet/apis/config,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/conversion,k8s.io/apimachinery/pkg/runtime \
   -h "${PROJECT_ROOT}/hack/LICENSE_BOILERPLATE.txt"
 
 # OpenAPI definitions

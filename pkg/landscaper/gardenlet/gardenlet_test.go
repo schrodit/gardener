@@ -1,4 +1,4 @@
-// Copyright (c) 2020 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
+// Copyright (c) 2021 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,53 +17,57 @@ package gardenlet
 import (
 	"fmt"
 
-	v2 "github.com/gardener/component-spec/bindings-go/apis/v2"
+	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
+	"k8s.io/apimachinery/pkg/util/runtime"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
+var typedObjectCodec = cdv2.NewCodec(nil, nil, nil)
+
 var _ = Describe("Gardenlet Landscaper testing", func() {
 	var (
 		landscaper              Landscaper
-		componentDescriptorList *v2.ComponentDescriptorList
+		componentDescriptorList *cdv2.ComponentDescriptorList
 		expectedImageRepository = "eu.gcr.io/sap-se-gcr-k8s-public/eu_gcr_io/gardener-project/gardener/gardenlet"
 		expectedImageVersion    = "v1.11.3"
 	)
 
 	BeforeEach(func() {
 		landscaper = Landscaper{}
-		componentDescriptorList = &v2.ComponentDescriptorList{
-			Components: []v2.ComponentDescriptor{
-				{
-					ComponentSpec: v2.ComponentSpec{
-						ObjectMeta: v2.ObjectMeta{
-							Name:    "github.com/gardener/gardener",
-							Version: expectedImageVersion,
-						},
-						RepositoryContexts: []v2.RepositoryContext{
-							{
-								Type:    "ociRegistry",
-								BaseURL: "eu.gcr.io/gardener-project/gardener/gardenlet",
-							},
-						},
-						Provider: "internal",
-						Resources: []v2.Resource{
-							{
-								ObjectMeta: v2.ObjectMeta{
-									Name:    "gardenlet",
-									Version: expectedImageVersion,
-									Labels:  nil,
-								},
-								Relation:            v2.LocalRelation,
-								TypedObjectAccessor: v2.NewTypeOnly(v2.OCIImageType),
-								Access: &v2.OCIRegistryAccess{
-									ObjectType:     v2.ObjectType{Type: v2.OCIImageType},
-									ImageReference: fmt.Sprintf("%s:%s", expectedImageRepository, expectedImageVersion),
-								},
-							},
-						},
+
+		componentDescriptor := cdv2.ComponentDescriptor{
+			ComponentSpec: cdv2.ComponentSpec{
+				ObjectMeta: cdv2.ObjectMeta{
+					Name:    "github.com/gardener/gardener",
+					Version: expectedImageVersion,
+				},
+				RepositoryContexts: []cdv2.RepositoryContext{
+					{
+						Type:    "ociRegistry",
+						BaseURL: "eu.gcr.io/gardener-project/gardener/gardenlet",
 					},
 				},
+				Provider: "internal",
+				Resources: []cdv2.Resource{
+					{
+						IdentityObjectMeta: cdv2.IdentityObjectMeta{
+							Name:    "gardenlet",
+							Version: expectedImageVersion,
+							Labels:  nil,
+						},
+						Relation: cdv2.LocalRelation,
+					},
+				},
+			},
+		}
+
+		componentDescriptor.ComponentSpec.Resources[0].Access = getAccessTypeWithImageReference(fmt.Sprintf("%s:%s", expectedImageRepository, expectedImageVersion))
+
+		componentDescriptorList = &cdv2.ComponentDescriptorList{
+			Components: []cdv2.ComponentDescriptor{
+				componentDescriptor,
 			},
 		}
 	})
@@ -76,20 +80,20 @@ var _ = Describe("Gardenlet Landscaper testing", func() {
 		})
 		It("should parse the Gardenlet image - reference contains port", func() {
 			imageRepo := "eu.gcr.io/sap-se-gcr-k8s-public/eu_gcr_io/gardener-project:5000/gardener/gardenlet"
-			componentDescriptorList.Components[0].Resources[0].Access.(*v2.OCIRegistryAccess).ImageReference = fmt.Sprintf("%s:%s", imageRepo, expectedImageVersion)
+			componentDescriptorList.Components[0].Resources[0].Access = getAccessTypeWithImageReference(fmt.Sprintf("%s:%s", imageRepo, expectedImageVersion))
 			Expect(landscaper.parseGardenletImage(componentDescriptorList)).ToNot(HaveOccurred())
 			Expect(landscaper.gardenletImageRepository).To(Equal(imageRepo))
 			Expect(landscaper.gardenletImageTag).To(Equal(expectedImageVersion))
 		})
 		It("should return error - Component does not exist", func() {
-			Expect(landscaper.parseGardenletImage(&v2.ComponentDescriptorList{})).To(HaveOccurred())
+			Expect(landscaper.parseGardenletImage(&cdv2.ComponentDescriptorList{})).To(HaveOccurred())
 		})
 		It("should return error - more than one component with expected name exists", func() {
 			componentDescriptorList.Components = append(componentDescriptorList.Components, componentDescriptorList.Components[0])
-			Expect(landscaper.parseGardenletImage(&v2.ComponentDescriptorList{})).To(HaveOccurred())
+			Expect(landscaper.parseGardenletImage(&cdv2.ComponentDescriptorList{})).To(HaveOccurred())
 		})
 		It("should return error - local resource with expected name does not exists", func() {
-			componentDescriptorList.Components[0].Resources = []v2.Resource{}
+			componentDescriptorList.Components[0].Resources = []cdv2.Resource{}
 			Expect(landscaper.parseGardenletImage(componentDescriptorList)).To(HaveOccurred())
 		})
 		It("should return error - local resource version not set", func() {
@@ -97,12 +101,29 @@ var _ = Describe("Gardenlet Landscaper testing", func() {
 			Expect(landscaper.parseGardenletImage(componentDescriptorList)).To(HaveOccurred())
 		})
 		It("should return error - local resource image reference not set", func() {
-			componentDescriptorList.Components[0].Resources[0].Access.(*v2.OCIRegistryAccess).ImageReference = ""
+			componentDescriptorList.Components[0].Resources[0].Access = getAccessTypeWithImageReference("")
 			Expect(landscaper.parseGardenletImage(componentDescriptorList)).To(HaveOccurred())
 		})
 		It("should return error - local resource image reference invalid", func() {
-			componentDescriptorList.Components[0].Resources[0].Access.(*v2.OCIRegistryAccess).ImageReference = "invalid"
+			componentDescriptorList.Components[0].Resources[0].Access = getAccessTypeWithImageReference("invalid")
 			Expect(landscaper.parseGardenletImage(componentDescriptorList)).To(HaveOccurred())
 		})
 	})
 })
+
+func getAccessTypeWithImageReference(imageReference string) *cdv2.UnstructuredAccessType {
+	access := &cdv2.OCIRegistryAccess{
+		ObjectType:     cdv2.ObjectType{Type: cdv2.OCIImageType},
+		ImageReference: imageReference,
+	}
+
+	encodedAccessor, err := typedObjectCodec.Encode(access)
+	runtime.Must(err)
+
+	return &cdv2.UnstructuredAccessType{
+		ObjectType: cdv2.ObjectType{
+			Type: cdv2.OCIImageType,
+		},
+		Raw: encodedAccessor,
+	}
+}

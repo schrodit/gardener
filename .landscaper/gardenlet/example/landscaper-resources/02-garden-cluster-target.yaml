@@ -8,4 +8,4 @@ spec:
   config:
     kubeconfig: |
       apiVersion:...
-          # here goes the kubeconfig of the target cluster
+          # here goes the kubeconfig of the garden cluster

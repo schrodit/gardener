@@ -9,24 +9,25 @@ imports:
 - name: gardenCluster
   targetType: landscaper.gardener.cloud/kubernetes-cluster
 - name: imageVectorOverwrite
+  required: false
   schema:
     type: string
 - name: componentImageVectorOverwrites
+  required: false
   schema:
     type: string
 - name: seedBackup
+  required: false
   schema:
     type: object
     properties:
-      name:
+      provider:
         type: string
 #       provider specific credentials just parsed as string and created as secret
-      providerCredentials:
+      credentials:
         type: object
-- name: revisionHistoryLimit
-  schema:
-    type: number
 - name: resources
+  required: false
   schema:
     type: object
     properties:
@@ -70,8 +71,8 @@ deployExecutions:
             resourceName: blueprint
 
         importValues:
-          apiVersion: imports.gardenlet.landscaper.gardener.cloud/v1alpha1
-          kind: LandscaperGardenletImport
+          apiVersion: gardenlet.gardener.landscaper.gardener.cloud/v1alpha1
+          kind: Imports
     {{ toYaml .imports | indent 6 }}
 
         image: {{ index .cd.component.resources "gardenlet-landscaper" "access" "imageReference" }}

@@ -23,7 +23,7 @@ fi
 GO111MODULE=on \
 OPERATION=RECONCILE \
 IMPORTS_PATH=$1 \
-COMPONENT_DESCRIPTOR_PATH=.landscaper/gardenlet/component_descriptor.yaml \
+COMPONENT_DESCRIPTOR_PATH=.landscaper/gardenlet/example/local/component_descriptor_list.yaml \
     go run \
       -mod=vendor \
       -ldflags "$(./hack/get-build-ld-flags.sh)" \

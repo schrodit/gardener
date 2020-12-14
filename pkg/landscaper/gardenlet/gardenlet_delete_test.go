@@ -1,4 +1,4 @@
-// Copyright (c) 2020 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
+// Copyright (c) 2021 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -74,14 +74,13 @@ var _ = Describe("Gardenlet Landscaper deletion testing", func() {
 
 			mockSeedClient = mockclient.NewMockClient(mockController)
 			mockSeedInterface = mock.NewMockInterface(mockController)
-
 			mockChartApplier = mock.NewMockChartApplier(mockController)
 
 			landscaper = Landscaper{
 				gardenClient: mockGardenInterface,
 				seedClient:   mockSeedInterface,
 				log:          logger.NewNopLogger().WithContext(ctx),
-				Imports: &imports.LandscaperGardenletImport{
+				Imports: &imports.Imports{
 					ComponentConfiguration: gardenletconfigv1alpha1.GardenletConfiguration{
 						SeedConfig: &gardenletconfigv1alpha1.SeedConfig{
 							Seed: *seed,
