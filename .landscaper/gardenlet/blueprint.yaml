@@ -63,16 +63,12 @@ deployExecutions:
         kind: ProviderConfiguration
 
         blueprint:
-          ref:
-            repositoryContext:
-    {{ toYaml ( index .cd.component.repositoryContexts (add (len .cd.component.repositoryContexts) -1) ) | indent 10 }}
-            componentName: {{ .cd.component.name }}
-            version: {{ .cd.component.version }}
-            resourceName: blueprint
+    {{ toYaml .blueprint | indent 6 }}
 
         importValues:
           apiVersion: gardenlet.gardener.landscaper.gardener.cloud/v1alpha1
           kind: Imports
     {{ toYaml .imports | indent 6 }}
 
-        image: {{ index .cd.component.resources "gardenlet-landscaper" "access" "imageReference" }}
+        {{ $resource := getResource .cd "name" "gardenlet-landscaper" }}
+        image: {{ $resource.access.imageReference }}
